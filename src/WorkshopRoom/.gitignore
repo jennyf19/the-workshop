@@ -1,0 +1,7 @@
+bin/
+obj/
+room.db
+room.db-*
+seed-live.json
+usage-cache.json
+desk-names.json

@@ -1,0 +1,11 @@
+# build output
+bin/
+obj/
+
+# per-machine runtime state (never commit)
+*.db
+*.db-shm
+*.db-wal
+seed-live.json
+usage-cache.json
+desk-names.json

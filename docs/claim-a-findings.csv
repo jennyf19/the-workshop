@@ -1,0 +1,18 @@
+# Claim-A scoring sheet.
+# confirmed: real | fp        (fp = false positive, excluded from G)
+# caught_c1 : single desk, one pass         1 | 0 | ?
+# caught_c2 : single desk at 10x budget     1 | 0 | ?     (? = experiment not yet run)
+# caught_room: the room (N diverse desks)   1 | 0 | ?
+# structural_miss = (confirmed=real) AND room=1 AND c1=0 AND c2=0
+# structural_miss_rate = structural_miss / count(confirmed=real)
+#
+# EXAMPLE rows are illustrative — they exist only to prove the computation runs and
+# show the output shape. Real instances go below them once curated. History rows
+# will have c1/c2 = '?' because those conditions were never run, which is exactly
+# why proving "structural" needs the C2 budget-control experiment, not just archives.
+artifact,finding_id,finding,confirmed,caught_c1,caught_c2,caught_room,frame,note
+EXAMPLE,e1,off-by-one in pagination,real,1,1,1,desk-a,single agent caught it (pure coverage)
+EXAMPLE,e2,missing authz on edit path,real,0,0,1,desk-b,room only; security-desk prior
+EXAMPLE,e3,race in retry backoff,real,0,1,1,desk-c,budget bought it back (more passes)
+EXAMPLE,e4,silent drop of a required auth claim,real,0,0,1,desk-d,room only; structural
+EXAMPLE,e5,log-line typo,fp,0,0,1,desk-b,false positive (excluded from G)

@@ -1,0 +1,15 @@
+@inherits LayoutComponentBase
+@inject IHostEnvironment Hosting
+
+<div class="page">
+    <header class="topbar">
+        <span class="brand">the workshop</span>
+        <nav class="topnav">
+            <NavLink href="/" Match="NavLinkMatch.All">workshop</NavLink>
+        </nav>
+        <span class="live"><span class="dot"></span>live &middot; @Hosting.EnvironmentName</span>
+    </header>
+    <main>
+        @Body
+    </main>
+</div>
