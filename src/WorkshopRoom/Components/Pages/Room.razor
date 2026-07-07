@@ -66,28 +66,39 @@
 </div>
 
 <div class="toolbar">
-    <span class="muted">reading your session-state live &middot; refreshes every 3s &middot; tokens/AIC as of @_usageAsOf</span>
-    <span class="newdesk">
-        <span class="nd-label">start a desk:</span>
-        <input class="nd-input" @bind="_newDeskName" @bind:event="oninput" @onkeydown="NewDeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="type a folder name, then + desk" />
-        <button class="btn" @onclick="StartDesk">+ desk</button>
-        @if (!string.IsNullOrEmpty(_newDeskHint)) { <span class="nd-hint">@_newDeskHint</span> }
-    </span>
-    <span class="newdesk">
-        <span class="nd-label">start a workshop:</span>
-        <input class="nd-input" @bind="_newWorkshopName" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="repo name" />
+    <span class="muted">first set up a workshop (a repo), then open desks in it &middot; live from session-state, refreshes every 3s</span>
+</div>
+
+<div class="setup">
+    <div class="step">
+        <span class="step-num">1</span>
+        <span class="nd-label">set up a workshop:</span>
+        <input class="nd-input" @bind="_newWorkshopName" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="new repo name" />
         <select class="nd-input" @bind="_workshopOwner" @onfocus="() => _typing = true" @onblur="() => _typing = false">
             @foreach (var l in _ghLogins) { <option value="@l.Login">@l.Login@(l.IsActive ? " (active)" : "")</option> }
         </select>
-        <button class="btn" @onclick="StartWorkshop" disabled="@_busy">@(_busy ? "creating..." : "+ workshop")</button>
-        @if (!string.IsNullOrEmpty(_workshopHint)) { <span class="nd-hint">@_workshopHint</span> }
-    </span>
-    <span class="newdesk">
-        <span class="nd-label">use a workshop:</span>
-        <input class="nd-input" @bind="_useWorkshopRepo" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="owner/name" />
+        <button class="btn" @onclick="StartWorkshop" disabled="@_busy">@(_busy ? "creating..." : "create new")</button>
+        <span class="or">or</span>
+        <input class="nd-input" @bind="_useWorkshopRepo" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="existing owner/name" />
         <button class="btn" @onclick="UseWorkshop" disabled="@_busy">@(_busy ? "cloning..." : "use existing")</button>
-        @if (!string.IsNullOrEmpty(_useWorkshopHint)) { <span class="nd-hint">@_useWorkshopHint</span> }
-    </span>
+    </div>
+    @if (!string.IsNullOrEmpty(_setupMessage))
+    {
+        <div class="step-result">
+            <span class="@(_setupDir is not null ? "ok" : "warn")">@_setupMessage</span>
+            @if (_setupDir is not null)
+            {
+                <button class="link-btn" @onclick="() => OpenDeskHere(_setupDir)">&rarr; open a desk here</button>
+            }
+        </div>
+    }
+    <div class="step">
+        <span class="step-num">2</span>
+        <span class="nd-label">open a desk:</span>
+        <input class="nd-input" @bind="_newDeskName" @bind:event="oninput" @onkeydown="NewDeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder (or a name)" />
+        <button class="btn" @onclick="StartDesk">+ desk</button>
+        @if (!string.IsNullOrEmpty(_newDeskHint)) { <span class="nd-hint">@_newDeskHint</span> }
+    </div>
 </div>
 
 <div class="grid">
@@ -212,9 +223,9 @@
     private string _newDeskHint = "";
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
-    private string _workshopHint = "";
     private string _useWorkshopRepo = "";
-    private string _useWorkshopHint = "";
+    private string _setupMessage = "";
+    private string? _setupDir;
     private List<GhLogin> _ghLogins = new();
     private bool _busy;
     private bool _typing;
@@ -273,38 +284,38 @@
     private async Task StartWorkshop()
     {
         var name = _newWorkshopName.Trim();
-        if (name.Length == 0) { _workshopHint = "name the workshop first"; return; }
-        if (string.IsNullOrWhiteSpace(_workshopOwner)) { _workshopHint = "no gh account found — run gh auth login"; return; }
-        _busy = true; _workshopHint = "creating the private repo..."; StateHasChanged();
+        if (name.Length == 0) { _setupMessage = "name the workshop first"; _setupDir = null; return; }
+        if (string.IsNullOrWhiteSpace(_workshopOwner)) { _setupMessage = "no gh account found — run gh auth login"; _setupDir = null; return; }
+        _busy = true; _setupMessage = "creating the private repo..."; _setupDir = null; StateHasChanged();
         var active = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login;
         var result = await Task.Run(() => WorkshopLauncher.NewWorkshop(_workshopOwner, name, Config.WorkshopsBaseDir, active));
         _busy = false;
-        _workshopHint = result.Message;
-        if (result.Ok && result.Dir is not null)
-        {
-            ConsoleLauncher.NewDesk(result.Dir, name);   // open the first desk in the new workshop
-            _newWorkshopName = "";
-        }
+        _setupMessage = result.Message;
+        _setupDir = result.Ok ? result.Dir : null;   // ready; the operator opens a desk deliberately
+        if (result.Ok) _newWorkshopName = "";
         StateHasChanged();
     }
 
     private async Task UseWorkshop()
     {
         var repo = _useWorkshopRepo.Trim();
-        if (repo.Length == 0) { _useWorkshopHint = "enter owner/name"; return; }
-        _busy = true; _useWorkshopHint = "cloning..."; StateHasChanged();
+        if (repo.Length == 0) { _setupMessage = "enter owner/name"; _setupDir = null; return; }
+        _busy = true; _setupMessage = "cloning..."; _setupDir = null; StateHasChanged();
         var active = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login;
         var logins = _ghLogins.Select(l => l.Login).ToList();
         var result = await Task.Run(() => WorkshopLauncher.UseWorkshop(repo, Config.WorkshopsBaseDir, active, logins));
         _busy = false;
-        _useWorkshopHint = result.Message;
-        if (result.Ok && result.Dir is not null)
-        {
-            var deskName = System.IO.Path.GetFileName(result.Dir.TrimEnd('\\', '/'));
-            ConsoleLauncher.NewDesk(result.Dir, deskName);   // open a desk in the cloned workshop
-            _useWorkshopRepo = "";
-        }
+        _setupMessage = result.Message;
+        _setupDir = result.Ok ? result.Dir : null;
+        if (result.Ok) _useWorkshopRepo = "";
         StateHasChanged();
+    }
+
+    // Step 2, done deliberately: open a desk in a workshop we just set up.
+    private void OpenDeskHere(string dir)
+    {
+        var name = System.IO.Path.GetFileName(dir.TrimEnd('\\', '/'));
+        ConsoleLauncher.NewDesk(dir, name);
     }
 
     private static string Conf(double? v) => v is double d ? d.ToString("0.00") : "-";
