@@ -72,15 +72,12 @@
 <div class="setup">
     <div class="step">
         <span class="step-num">1</span>
-        <span class="nd-label">set up a workshop:</span>
+        <span class="nd-label">create a workshop:</span>
         <input class="nd-input" @bind="_newWorkshopName" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="new repo name" />
         <select class="nd-input" @bind="_workshopOwner" @onfocus="() => _typing = true" @onblur="() => _typing = false">
             @foreach (var l in _ghLogins) { <option value="@l.Login">@l.Login@(l.IsActive ? " (active)" : "")</option> }
         </select>
-        <button class="btn" @onclick="StartWorkshop" disabled="@_busy">@(_busy ? "creating..." : "create new")</button>
-        <span class="or">or</span>
-        <input class="nd-input" @bind="_useWorkshopRepo" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="existing owner/name" />
-        <button class="btn" @onclick="UseWorkshop" disabled="@_busy">@(_busy ? "cloning..." : "use existing")</button>
+        <button class="btn" @onclick="StartWorkshop" disabled="@_busy">@(_busy ? "creating..." : "create workshop")</button>
     </div>
     @if (!string.IsNullOrEmpty(_setupMessage))
     {
@@ -92,18 +89,9 @@
     <div class="step">
         <span class="step-num">2</span>
         <span class="nd-label">open a desk in:</span>
-        @if (_workshops.Count == 0)
-        {
-            <span class="muted">no workshops yet &mdash; set one up above</span>
-        }
-        else
-        {
-            <select class="nd-input" @bind="_selectedWorkshop" @onfocus="() => _typing = true" @onblur="() => _typing = false">
-                @foreach (var w in _workshops) { <option value="@w.Dir">@w.Name</option> }
-            </select>
-            <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" />
-            <button class="btn" @onclick="OpenDesk">open a desk</button>
-        }
+        <input class="nd-input wide" @bind="_deskFolder" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder, e.g. Ember_workshop" />
+        <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" />
+        <button class="btn" @onclick="OpenDesk">open a desk</button>
         @if (!string.IsNullOrEmpty(_deskHint)) { <span class="nd-hint">@_deskHint</span> }
     </div>
 </div>
@@ -151,6 +139,13 @@
                             else if (!string.IsNullOrEmpty(d.SessionId))
                             {
                                 <button class="link-btn" @onclick="() => OpenConsole(d)" title="open this desk's session in a new terminal">&#8599; console</button>
+                            }
+                            @if (!string.IsNullOrEmpty(d.SessionId))
+                            {
+                                <button class="link-btn danger" @onclick="() => CloseDesk(d)" disabled="@_closing.Contains(d.SessionId)"
+                                        title="@(d.ConsolePid > 0 ? "wind down: the agent journals, then this desk closes" : "close and hide this desk")">
+                                    @(_closing.Contains(d.SessionId) ? "closing..." : "close")
+                                </button>
                             }
                         </td>
                     </tr>
@@ -226,13 +221,12 @@
     private Pulse _pulse = new("warming up", "", new());
     private DateTime _now = DateTime.UtcNow;
     private string _usageAsOf = "";
+    private string _deskFolder = "";
     private string _deskName = "";
     private string _deskHint = "";
-    private string _selectedWorkshop = "";
-    private List<WorkshopLauncher.WorkshopInfo> _workshops = new();
+    private readonly HashSet<string> _closing = new();
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
-    private string _useWorkshopRepo = "";
     private string _setupMessage = "";
     private string? _setupDir;
     private List<GhLogin> _ghLogins = new();
@@ -261,13 +255,25 @@
         _handsup = s.HandsUp; _handoffs = s.Handoffs; _health = s.Health; _pulse = s.Pulse;
         _usageAsOf = s.UsageAsOf;
         _now = DateTime.UtcNow;
-        _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
-        if (_workshops.Count > 0 && _workshops.All(w => w.Dir != _selectedWorkshop))
-            _selectedWorkshop = _setupDir is not null && _workshops.Any(w => w.Dir == _setupDir)
-                ? _setupDir : _workshops[0].Dir;
     }
 
     private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd);
+
+    // Close a desk from the board. If a live agent still holds it (a console pid),
+    // wind it down gracefully — end the terminal, let the agent journal — then
+    // hide it. An idle desk is just hidden.
+    private async Task CloseDesk(Desk d)
+    {
+        if (string.IsNullOrEmpty(d.SessionId) || _closing.Contains(d.SessionId)) return;
+        _closing.Add(d.SessionId);
+        StateHasChanged();
+        if (d.ConsolePid > 0)
+            await Task.Run(() => DeskCloser.Close(d.SessionId, d.Cwd, d.ConsolePid, d.Name));
+        Reader.Close(d.SessionId);
+        _closing.Remove(d.SessionId);
+        Load();
+        StateHasChanged();
+    }
 
     private void Resolve(HandsUp h)
     {
@@ -280,11 +286,19 @@
     // workshop root (so every desk shares that one bench); the name is only the
     // session label. Nothing is combined from a bare name, so a desk can't land
     // anywhere but inside a real workshop.
+    // Open a desk in a workshop folder that already exists. Bare names resolve
+    // under the workshops base dir; a full path is used as-is. The folder must
+    // exist — we never create one here, so a typo can't spawn a stray folder.
     private void OpenDesk()
     {
-        if (string.IsNullOrWhiteSpace(_selectedWorkshop)) { _deskHint = "pick a workshop first"; return; }
+        var input = _deskFolder.Trim();
+        if (input.Length == 0) { _deskHint = "type a workshop folder first"; return; }
+        var dir = (input.Contains('\\') || input.Contains('/') || input.Contains(':'))
+            ? input
+            : System.IO.Path.Combine(Config.WorkshopsBaseDir, input);
+        if (!System.IO.Directory.Exists(dir)) { _deskHint = $"no folder at {dir} — create a workshop first"; return; }
         _deskHint = "";
-        ConsoleLauncher.NewDesk(_selectedWorkshop, _deskName.Trim());
+        ConsoleLauncher.NewDesk(dir, _deskName.Trim());
         _deskName = "";
     }
 
@@ -307,28 +321,7 @@
         if (result.Ok)
         {
             _newWorkshopName = "";
-            _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
-            if (result.Dir is not null) _selectedWorkshop = result.Dir;
-        }
-        StateHasChanged();
-    }
-
-    private async Task UseWorkshop()
-    {
-        var repo = _useWorkshopRepo.Trim();
-        if (repo.Length == 0) { _setupMessage = "enter owner/name"; _setupDir = null; return; }
-        _busy = true; _setupMessage = "cloning..."; _setupDir = null; StateHasChanged();
-        var active = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login;
-        var logins = _ghLogins.Select(l => l.Login).ToList();
-        var result = await Task.Run(() => WorkshopLauncher.UseWorkshop(repo, Config.WorkshopsBaseDir, active, logins));
-        _busy = false;
-        _setupMessage = result.Message;
-        _setupDir = result.Ok ? result.Dir : null;
-        if (result.Ok)
-        {
-            _useWorkshopRepo = "";
-            _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
-            if (result.Dir is not null) _selectedWorkshop = result.Dir;
+            if (result.Dir is not null) _deskFolder = result.Dir;   // prefill step 2 with the new workshop
         }
         StateHasChanged();
     }

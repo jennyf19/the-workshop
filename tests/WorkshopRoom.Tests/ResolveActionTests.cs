@@ -30,7 +30,8 @@ public class ResolveActionTests
                 root: Path.Combine(dir.FullName, "no-sessions"),
                 usageCache: Path.Combine(dir.FullName, "usage.json"),
                 namesPath: Path.Combine(dir.FullName, "names.json"),
-                resolvedPath: resolvedPath);
+                resolvedPath: resolvedPath,
+                closedPath: Path.Combine(dir.FullName, "closed-desks.json"));
 
             reader.Resolve("code-review", "ship it?");
 
@@ -53,7 +54,8 @@ public class ResolveActionTests
                 root: Path.Combine(dir.FullName, "no-sessions"),
                 usageCache: Path.Combine(dir.FullName, "usage.json"),
                 namesPath: Path.Combine(dir.FullName, "names.json"),
-                resolvedPath: resolvedPath);
+                resolvedPath: resolvedPath,
+                closedPath: Path.Combine(dir.FullName, "closed-desks.json"));
 
             Make().Resolve("code-review", "ship it?");
             Make().Resolve("code-review", "ship it?");   // idempotent — same key, no duplicate
@@ -64,6 +66,31 @@ public class ResolveActionTests
             System.Text.RegularExpressions.Regex.Matches(saved, "code-review").Count.Should().Be(1);
             saved.Should().Contain("ship it");
             key.Should().NotBeNullOrEmpty();
+        }
+        finally { dir.Delete(recursive: true); }
+    }
+
+    [Fact]
+    public void Closing_a_desk_persists_the_closure_by_session_id()
+    {
+        var dir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var closedPath = Path.Combine(dir.FullName, "closed-desks.json");
+            SessionStoreReader Make() => new(
+                root: Path.Combine(dir.FullName, "no-sessions"),
+                usageCache: Path.Combine(dir.FullName, "usage.json"),
+                namesPath: Path.Combine(dir.FullName, "names.json"),
+                resolvedPath: Path.Combine(dir.FullName, "handsup-resolved.json"),
+                closedPath: closedPath);
+
+            Make().Close("session-abc");
+            Make().Close("session-abc");   // idempotent — same id, no duplicate
+
+            File.Exists(closedPath).Should().BeTrue();
+            var saved = File.ReadAllText(closedPath);
+            saved.Should().Contain("session-abc");
+            System.Text.RegularExpressions.Regex.Matches(saved, "session-abc").Count.Should().Be(1);
         }
         finally { dir.Delete(recursive: true); }
     }

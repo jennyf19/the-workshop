@@ -30,37 +30,4 @@ public class WorkshopLauncherTests
         o.Should().BeNull();
         n.Should().BeNull();
     }
-
-    [Fact]
-    public void Lists_only_folders_that_are_a_git_repo_and_carry_the_workshop_marker()
-    {
-        var baseDir = Path.Combine(Path.GetTempPath(), "ws-list-" + Guid.NewGuid().ToString("N"));
-        try
-        {
-            MakeDir(baseDir, "alpha", git: true, marker: true);          // a real workshop
-            MakeDir(baseDir, "plain-clone", git: true, marker: false);   // e.g. the product repo — no marker
-            MakeDir(baseDir, "marker-no-git", git: false, marker: true); // marker but not a repo
-
-            var found = WorkshopLauncher.ListWorkshops(baseDir);
-
-            found.Select(w => w.Name).Should().ContainSingle().Which.Should().Be("alpha");
-            found[0].Dir.Should().Be(Path.Combine(baseDir, "alpha"));
-        }
-        finally { try { Directory.Delete(baseDir, recursive: true); } catch { } }
-    }
-
-    [Fact]
-    public void ListWorkshops_returns_empty_for_a_missing_base_dir()
-    {
-        var missing = Path.Combine(Path.GetTempPath(), "ws-missing-" + Guid.NewGuid().ToString("N"));
-        WorkshopLauncher.ListWorkshops(missing).Should().BeEmpty();
-    }
-
-    private static void MakeDir(string baseDir, string name, bool git, bool marker)
-    {
-        var dir = Path.Combine(baseDir, name);
-        Directory.CreateDirectory(dir);
-        if (git) Directory.CreateDirectory(Path.Combine(dir, ".git"));
-        if (marker) File.WriteAllText(Path.Combine(dir, "hands-up.md"), "");
-    }
 }

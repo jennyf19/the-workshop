@@ -11,7 +11,8 @@ var sessionRoot = Path.Combine(
 var usageCache = Path.Combine(builder.Environment.ContentRootPath, "usage-cache.json");
 var deskNames = Path.Combine(builder.Environment.ContentRootPath, "desk-names.json");
 var resolvedPath = Path.Combine(builder.Environment.ContentRootPath, "handsup-resolved.json");
-builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath));
+var closedPath = Path.Combine(builder.Environment.ContentRootPath, "closed-desks.json");
+builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath, closedPath));
 
 var workshopsDir = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath;
 builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { WorkshopsBaseDir = workshopsDir });

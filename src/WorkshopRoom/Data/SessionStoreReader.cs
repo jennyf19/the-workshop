@@ -16,6 +16,7 @@ public sealed class SessionStoreReader
     private readonly string _usageCache;  // usage-cache.json (cloud tokens/AIC, periodic sync)
     private readonly string _namesPath;   // desk-names.json (operator overrides, optional)
     private readonly string _resolvedPath; // handsup-resolved.json (operator-dismissed hands)
+    private readonly string _closedPath;  // closed-desks.json (operator-closed desks, hidden from the board)
     private readonly int _windowHours;
     private readonly int _maxDesks;
 
@@ -26,12 +27,13 @@ public sealed class SessionStoreReader
     // parse cache: session id -> (events.jsonl mtime, parsed). Re-parsed only when the file changes.
     private readonly Dictionary<string, (DateTime mtime, ParsedSession parsed)> _perSession = new();
 
-    public SessionStoreReader(string root, string usageCache, string namesPath, string resolvedPath, int windowHours = 12, int maxDesks = 10)
+    public SessionStoreReader(string root, string usageCache, string namesPath, string resolvedPath, string closedPath, int windowHours = 12, int maxDesks = 10)
     {
         _root = root;
         _usageCache = usageCache;
         _namesPath = namesPath;
         _resolvedPath = resolvedPath;
+        _closedPath = closedPath;
         _windowHours = windowHours;
         _maxDesks = maxDesks;
     }
@@ -52,6 +54,7 @@ public sealed class SessionStoreReader
         var usage = LoadUsage(out var asOf);
         var (namesById, namesByCwd) = LoadNames();
         var resolved = LoadResolved();
+        var closed = LoadClosed();
         var desks = new List<Desk>();
         var bench = new List<BenchTurn>();
         var handsup = new List<HandsUp>();
@@ -68,6 +71,7 @@ public sealed class SessionStoreReader
             int seq = 0;
             foreach (var (dir, ev) in recent)
             {
+                if (closed.Contains(dir.Name)) continue;   // operator closed this desk; keep it off the board
                 ParsedSession ps;
                 try { ps = ParseSession(dir.FullName, ev); }
                 catch { continue; }
@@ -323,6 +327,39 @@ public sealed class SessionStoreReader
         if (set.Add(ResolveKey(desk, question)))
         {
             try { File.WriteAllText(_resolvedPath, JsonSerializer.Serialize(set)); }
+            catch { /* best effort */ }
+        }
+        lock (_lock) { _cache = null; }
+    }
+
+    // Desks the operator has closed from the board; the scan hides them even if
+    // their session is still recent (e.g. a wind-down journal pass just wrote).
+    private HashSet<string> LoadClosed()
+    {
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        try
+        {
+            if (File.Exists(_closedPath))
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(_closedPath));
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    foreach (var e in doc.RootElement.EnumerateArray())
+                        if (e.ValueKind == JsonValueKind.String) set.Add(e.GetString()!);
+            }
+        }
+        catch { /* closures are optional */ }
+        return set;
+    }
+
+    // Operator action: close a desk. Persists the closure by session id and
+    // drops the cached snapshot so the next read re-scans without it.
+    public void Close(string sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId)) return;
+        var set = LoadClosed();
+        if (set.Add(sessionId))
+        {
+            try { File.WriteAllText(_closedPath, JsonSerializer.Serialize(set)); }
             catch { /* best effort */ }
         }
         lock (_lock) { _cache = null; }

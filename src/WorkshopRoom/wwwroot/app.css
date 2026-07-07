@@ -95,6 +95,9 @@ h1 { font-size: 1.5rem; margin: 0; }
 .step-result { font-size: 0.82rem; padding-left: 1.85rem; display: flex; gap: 0.6rem; align-items: center; }
 .step-result .ok { color: var(--good); }
 .step-result .warn { color: var(--warn); }
+.link-btn.danger { color: var(--warn); }
+.link-btn.danger:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+.nd-input.wide { width: 260px; }
 .sync { font-size: 0.7rem; font-family: var(--mono); margin-left: 0.35rem; }
 .sync-wip { color: var(--warn); }
 .sync-ahead { color: var(--accent); }
