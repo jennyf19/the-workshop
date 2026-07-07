@@ -71,6 +71,30 @@ public class ResolveActionTests
     }
 
     [Fact]
+    public void Reopening_a_desk_drops_it_from_the_closed_set()
+    {
+        var dir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var closedPath = Path.Combine(dir.FullName, "closed-desks.json");
+            SessionStoreReader Make() => new(
+                root: Path.Combine(dir.FullName, "no-sessions"),
+                usageCache: Path.Combine(dir.FullName, "usage.json"),
+                namesPath: Path.Combine(dir.FullName, "names.json"),
+                resolvedPath: Path.Combine(dir.FullName, "handsup-resolved.json"),
+                closedPath: closedPath);
+
+            Make().Close("session-abc");
+            Make().Reopen("session-abc");
+
+            var saved = File.Exists(closedPath) ? File.ReadAllText(closedPath) : "[]";
+            saved.Should().NotContain("session-abc");
+            Make().ClosedDesks().Should().BeEmpty();
+        }
+        finally { dir.Delete(recursive: true); }
+    }
+
+    [Fact]
     public void Closing_a_desk_persists_the_closure_by_session_id()
     {
         var dir = Directory.CreateTempSubdirectory();

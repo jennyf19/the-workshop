@@ -10,6 +10,9 @@ public record LiveSnapshot(
     List<HandsUp> HandsUp, List<Handoff> Handoffs, Health Health, Pulse Pulse,
     string UsageAsOf);
 
+// A desk the operator closed and hid from the board — kept so it can be reopened.
+public record ClosedDesk(string SessionId, string Name);
+
 public sealed class SessionStoreReader
 {
     private readonly string _root;        // ~/.copilot/session-state
@@ -340,6 +343,49 @@ public sealed class SessionStoreReader
         if (set.Add(ResolveKey(desk, question)))
         {
             try { File.WriteAllText(_resolvedPath, JsonSerializer.Serialize(set)); }
+            catch { /* best effort */ }
+        }
+        lock (_lock) { _cache = null; }
+    }
+
+    // The closed desks, resolved to display names so the operator can reopen
+    // them by name. Parses each closed session (cached by mtime) regardless of
+    // the recency window, so even an old closed desk can be brought back.
+    public List<ClosedDesk> ClosedDesks()
+    {
+        var closed = LoadClosed();
+        if (closed.Count == 0) return new();
+        var (namesById, namesByCwd) = LoadNames();
+        var list = new List<ClosedDesk>();
+        foreach (var id in closed)
+        {
+            try
+            {
+                var sdir = Path.Combine(_root, id);
+                var shortId = id.Length >= 8 ? id[..8] : id;
+                var evf = new FileInfo(Path.Combine(sdir, "events.jsonl"));
+                string name = shortId;
+                if (evf.Exists)
+                {
+                    var ps = ParseSession(sdir, evf);
+                    name = ResolveName(shortId, ps.Cwd, ps.UserNamed, ps.RawName, namesById, namesByCwd);
+                }
+                list.Add(new ClosedDesk(id, name));
+            }
+            catch { /* skip one that won't parse */ }
+        }
+        return list.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    // Operator action: reopen a closed desk (drop it from the closed set) so it
+    // shows on the board again.
+    public void Reopen(string sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId)) return;
+        var set = LoadClosed();
+        if (set.Remove(sessionId))
+        {
+            try { File.WriteAllText(_closedPath, JsonSerializer.Serialize(set)); }
             catch { /* best effort */ }
         }
         lock (_lock) { _cache = null; }

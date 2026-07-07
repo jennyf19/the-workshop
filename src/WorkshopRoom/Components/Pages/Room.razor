@@ -156,6 +156,16 @@
                 }
             </tbody>
         </table>
+        @if (_closed.Count > 0)
+        {
+            <div class="closed-strip">
+                <span class="muted">closed:</span>
+                @foreach (var c in _closed)
+                {
+                    <span class="closed-chip">@c.Name <button class="link-btn" @onclick="() => ReopenDesk(c.SessionId)" title="bring this desk back to the board">reopen</button></span>
+                }
+            </div>
+        }
     </section>
 
     <section class="panel">
@@ -230,6 +240,7 @@
     private string _deskHint = "";
     private readonly HashSet<string> _closing = new();
     private List<WorkshopLauncher.WorkshopInfo> _workshops = new();
+    private List<ClosedDesk> _closed = new();
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
     private string _setupMessage = "";
@@ -261,6 +272,7 @@
         _usageAsOf = s.UsageAsOf;
         _now = DateTime.UtcNow;
         _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
+        _closed = Reader.ClosedDesks();
     }
 
     private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd);
@@ -277,6 +289,14 @@
             await Task.Run(() => DeskCloser.Close(d.SessionId, d.Cwd, d.ConsolePid, d.Name));
         Reader.Close(d.SessionId);
         _closing.Remove(d.SessionId);
+        Load();
+        StateHasChanged();
+    }
+
+    // Bring a closed desk back to the board.
+    private void ReopenDesk(string sessionId)
+    {
+        Reader.Reopen(sessionId);
         Load();
         StateHasChanged();
     }
