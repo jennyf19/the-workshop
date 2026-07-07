@@ -14,7 +14,8 @@ var resolvedPath = Path.Combine(builder.Environment.ContentRootPath, "handsup-re
 builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath));
 
 var classroomDir = Directory.GetParent(builder.Environment.ContentRootPath)?.Parent?.FullName ?? builder.Environment.ContentRootPath;
-builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { DesksBaseDir = classroomDir });
+var workshopsDir = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? classroomDir;
+builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { DesksBaseDir = classroomDir, WorkshopsBaseDir = workshopsDir });
 
 var app = builder.Build();
 

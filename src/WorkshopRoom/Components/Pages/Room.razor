@@ -73,6 +73,15 @@
         <button class="btn" @onclick="StartDesk">+ desk</button>
         @if (!string.IsNullOrEmpty(_newDeskHint)) { <span class="nd-hint">@_newDeskHint</span> }
     </span>
+    <span class="newdesk">
+        <span class="nd-label">start a workshop:</span>
+        <input class="nd-input" @bind="_newWorkshopName" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="repo name" />
+        <select class="nd-input" @bind="_workshopOwner" @onfocus="() => _typing = true" @onblur="() => _typing = false">
+            @foreach (var l in _ghLogins) { <option value="@l.Login">@l.Login@(l.IsActive ? " (active)" : "")</option> }
+        </select>
+        <button class="btn" @onclick="StartWorkshop" disabled="@_busy">@(_busy ? "creating..." : "+ workshop")</button>
+        @if (!string.IsNullOrEmpty(_workshopHint)) { <span class="nd-hint">@_workshopHint</span> }
+    </span>
 </div>
 
 <div class="grid">
@@ -195,12 +204,19 @@
     private string _usageAsOf = "";
     private string _newDeskName = "";
     private string _newDeskHint = "";
+    private string _newWorkshopName = "";
+    private string _workshopOwner = "";
+    private string _workshopHint = "";
+    private List<GhLogin> _ghLogins = new();
+    private bool _busy;
     private bool _typing;
     private Timer? _tick;
 
     protected override void OnInitialized()
     {
         Load();
+        _ghLogins = GhAuth.DiscoverLogins().ToList();
+        _workshopOwner = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login ?? _ghLogins.FirstOrDefault()?.Login ?? "";
         _tick = new Timer(_ => InvokeAsync(() =>
         {
             if (_typing) return;
@@ -244,6 +260,24 @@
     private void NewDeskKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") StartDesk();
+    }
+
+    private async Task StartWorkshop()
+    {
+        var name = _newWorkshopName.Trim();
+        if (name.Length == 0) { _workshopHint = "name the workshop first"; return; }
+        if (string.IsNullOrWhiteSpace(_workshopOwner)) { _workshopHint = "no gh account found — run gh auth login"; return; }
+        _busy = true; _workshopHint = "creating the private repo..."; StateHasChanged();
+        var active = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login;
+        var result = await Task.Run(() => WorkshopLauncher.NewWorkshop(_workshopOwner, name, Config.WorkshopsBaseDir, active));
+        _busy = false;
+        _workshopHint = result.Message;
+        if (result.Ok && result.Dir is not null)
+        {
+            ConsoleLauncher.NewDesk(result.Dir, name);   // open the first desk in the new workshop
+            _newWorkshopName = "";
+        }
+        StateHasChanged();
     }
 
     private static string Conf(double? v) => v is double d ? d.ToString("0.00") : "-";
