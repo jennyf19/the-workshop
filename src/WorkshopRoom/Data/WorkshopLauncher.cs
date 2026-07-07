@@ -104,6 +104,40 @@ public static class WorkshopLauncher
         return (null, null);
     }
 
+    public record WorkshopInfo(string Name, string Dir);
+
+    // A folder counts as a workshop if it's a git repo that also looks like one:
+    // it has the scaffold marker (hands-up.md), or a classroom/ or desks/ folder.
+    // That catches both room-created workshops and existing ones like
+    // Ember_workshop, while skipping the product repo and unrelated clones.
+    internal static bool IsWorkshop(string dir)
+    {
+        try
+        {
+            if (!Directory.Exists(Path.Combine(dir, ".git"))) return false;
+            return File.Exists(Path.Combine(dir, "hands-up.md"))
+                || Directory.Exists(Path.Combine(dir, "classroom"))
+                || Directory.Exists(Path.Combine(dir, "desks"));
+        }
+        catch { return false; }
+    }
+
+    // Lists the local workshops directly under baseDir so the room can offer
+    // them as one-click places to open a desk. Sorted by name; unreadable
+    // folders are skipped rather than throwing.
+    public static List<WorkshopInfo> ListWorkshops(string baseDir)
+    {
+        var found = new List<WorkshopInfo>();
+        if (string.IsNullOrWhiteSpace(baseDir) || !Directory.Exists(baseDir)) return found;
+        IEnumerable<string> dirs;
+        try { dirs = Directory.EnumerateDirectories(baseDir); }
+        catch { return found; }
+        foreach (var d in dirs)
+            if (IsWorkshop(d))
+                found.Add(new WorkshopInfo(Path.GetFileName(d.TrimEnd('\\', '/')), d));
+        return found.OrderBy(w => w.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     private static void Scaffold(string dir, string name)
     {
         Directory.CreateDirectory(dir);

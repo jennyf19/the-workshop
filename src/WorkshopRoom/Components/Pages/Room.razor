@@ -89,8 +89,12 @@
     <div class="step">
         <span class="step-num">2</span>
         <span class="nd-label">open a desk in:</span>
-        <input class="nd-input wide" @bind="_deskFolder" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder, e.g. Ember_workshop" />
-        <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" />
+        @foreach (var w in _workshops)
+        {
+            <button class="chip @(_deskFolder == w.Dir ? "on" : "")" @onclick="() => PickWorkshop(w.Dir)" title="@w.Dir">@w.Name</button>
+        }
+        <input class="nd-input wide" @bind="_deskFolder" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder, e.g. Ember_workshop" autocomplete="off" spellcheck="false" />
+        <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" autocomplete="off" spellcheck="false" />
         <button class="btn" @onclick="OpenDesk">open a desk</button>
         @if (!string.IsNullOrEmpty(_deskHint)) { <span class="nd-hint">@_deskHint</span> }
     </div>
@@ -225,6 +229,7 @@
     private string _deskName = "";
     private string _deskHint = "";
     private readonly HashSet<string> _closing = new();
+    private List<WorkshopLauncher.WorkshopInfo> _workshops = new();
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
     private string _setupMessage = "";
@@ -255,6 +260,7 @@
         _handsup = s.HandsUp; _handoffs = s.Handoffs; _health = s.Health; _pulse = s.Pulse;
         _usageAsOf = s.UsageAsOf;
         _now = DateTime.UtcNow;
+        _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
     }
 
     private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd);
@@ -286,6 +292,10 @@
     // workshop root (so every desk shares that one bench); the name is only the
     // session label. Nothing is combined from a bare name, so a desk can't land
     // anywhere but inside a real workshop.
+    // A workshop chip was clicked: fill the folder field with it (the operator
+    // can still add a desk name before opening).
+    private void PickWorkshop(string dir) { _deskFolder = dir; _deskHint = ""; }
+
     // Open a desk in a workshop folder that already exists. Bare names resolve
     // under the workshops base dir; a full path is used as-is. The folder must
     // exist — we never create one here, so a typo can't spawn a stray folder.
