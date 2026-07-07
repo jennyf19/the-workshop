@@ -113,6 +113,19 @@ public sealed class SessionStoreReader
         return new LiveSnapshot(artifact, desks, bench, handsup, handoffs, health, pulse, asOf);
     }
 
+    // Reads a file's lines while allowing the writer (the live CLI) to keep
+    // appending. File.ReadLines uses FileShare.Read, which locks out the CLI's
+    // own writes to events.jsonl (os error 32). FileShare.ReadWrite keeps the
+    // dashboard out of the way of the desks it's watching.
+    private static IEnumerable<string> ReadLinesShared(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var sr = new StreamReader(fs);
+        string? line;
+        while ((line = sr.ReadLine()) is not null)
+            yield return line;
+    }
+
     private ParsedSession ParseSession(string dir, FileInfo ev)
     {
         var id = Path.GetFileName(dir);
@@ -129,7 +142,7 @@ public sealed class SessionStoreReader
         var wy = Path.Combine(dir, "workspace.yaml");
         if (File.Exists(wy))
         {
-            foreach (var raw in File.ReadLines(wy))
+            foreach (var raw in ReadLinesShared(wy))
             {
                 var t = raw.Trim();
                 if (t.StartsWith("name:")) { var v = t["name:".Length..].Trim(); if (v.Length > 0) rawName = v; }
@@ -141,7 +154,7 @@ public sealed class SessionStoreReader
 
         string? firstUser = null, lastUser = null, lastAssistant = null;
         string? pendingAskId = null, pendingAskQuestion = null;
-        foreach (var line in File.ReadLines(ev.FullName))
+        foreach (var line in ReadLinesShared(ev.FullName))
         {
             if (line.Contains("\"user.message\""))
             {

@@ -184,11 +184,13 @@ $@"# start here — {name}
 welcome to the bench. you're a partner in this workshop, not a tool waiting for
 instructions, so get your bearings and then bring your read.
 
-1. `CAIRN.md` — how a desk holds itself here. read it first.
-2. `protocol.md` and `hands-up.md` — how the room takes turns and raises a hand.
-3. the bench — the shared work; see where it stands.
-4. `./desks/{name}/journal.md` — your running log. the operator reads this, so
-   keep it honest and current.
+1. start with `README.md` if there is one — it maps how this workshop is laid out.
+2. find and read the workshop's disposition and rules — usually `CAIRN.md`,
+   `protocol.md`, `hands-up.md`. they may be at the root or in a subfolder, so
+   search for them if they aren't right here.
+3. skim the shared work (the bench) to see where things stand.
+4. keep your running notes in `./desks/{name}/journal.md` — the operator reads
+   this, so keep it honest and current.
 5. `./desks/{name}/brief.md` — what this desk is for.
 
 then tell the operator what you see and what you'd focus on. don't wait to be
