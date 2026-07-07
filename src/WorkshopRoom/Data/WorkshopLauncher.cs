@@ -104,6 +104,38 @@ public static class WorkshopLauncher
         return (null, null);
     }
 
+    public record WorkshopInfo(string Name, string Dir);
+
+    // A folder is a workshop if it's a git repo that also carries the workshop
+    // marker (hands-up.md at its root). The marker is what the scaffold writes,
+    // so it cleanly separates a workshop from a plain clone — the product repo
+    // and unrelated repos under the same base dir won't match.
+    internal static bool IsWorkshop(string dir) =>
+        Directory.Exists(Path.Combine(dir, ".git")) &&
+        File.Exists(Path.Combine(dir, "hands-up.md"));
+
+    // Lists the local workshops directly under baseDir so the room can offer
+    // them as the place to open a desk. Sorted by name; unreadable folders are
+    // skipped rather than throwing.
+    public static List<WorkshopInfo> ListWorkshops(string baseDir)
+    {
+        var found = new List<WorkshopInfo>();
+        if (string.IsNullOrWhiteSpace(baseDir) || !Directory.Exists(baseDir)) return found;
+        IEnumerable<string> dirs;
+        try { dirs = Directory.EnumerateDirectories(baseDir); }
+        catch { return found; }
+        foreach (var d in dirs)
+        {
+            try
+            {
+                if (IsWorkshop(d))
+                    found.Add(new WorkshopInfo(Path.GetFileName(d.TrimEnd('\\', '/')), d));
+            }
+            catch { /* skip an unreadable folder */ }
+        }
+        return found.OrderBy(w => w.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     private static void Scaffold(string dir, string name)
     {
         Directory.CreateDirectory(dir);

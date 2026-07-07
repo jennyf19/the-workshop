@@ -86,18 +86,25 @@
     {
         <div class="step-result">
             <span class="@(_setupDir is not null ? "ok" : "warn")">@_setupMessage</span>
-            @if (_setupDir is not null)
-            {
-                <button class="link-btn" @onclick="() => OpenDeskHere(_setupDir)">&rarr; open a desk here</button>
-            }
+            @if (_setupDir is not null) { <span class="muted">&rarr; now open a desk in it below</span> }
         </div>
     }
     <div class="step">
         <span class="step-num">2</span>
-        <span class="nd-label">open a desk:</span>
-        <input class="nd-input" @bind="_newDeskName" @bind:event="oninput" @onkeydown="NewDeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder (or a name)" />
-        <button class="btn" @onclick="StartDesk">+ desk</button>
-        @if (!string.IsNullOrEmpty(_newDeskHint)) { <span class="nd-hint">@_newDeskHint</span> }
+        <span class="nd-label">open a desk in:</span>
+        @if (_workshops.Count == 0)
+        {
+            <span class="muted">no workshops yet &mdash; set one up above</span>
+        }
+        else
+        {
+            <select class="nd-input" @bind="_selectedWorkshop" @onfocus="() => _typing = true" @onblur="() => _typing = false">
+                @foreach (var w in _workshops) { <option value="@w.Dir">@w.Name</option> }
+            </select>
+            <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" />
+            <button class="btn" @onclick="OpenDesk">open a desk</button>
+        }
+        @if (!string.IsNullOrEmpty(_deskHint)) { <span class="nd-hint">@_deskHint</span> }
     </div>
 </div>
 
@@ -219,8 +226,10 @@
     private Pulse _pulse = new("warming up", "", new());
     private DateTime _now = DateTime.UtcNow;
     private string _usageAsOf = "";
-    private string _newDeskName = "";
-    private string _newDeskHint = "";
+    private string _deskName = "";
+    private string _deskHint = "";
+    private string _selectedWorkshop = "";
+    private List<WorkshopLauncher.WorkshopInfo> _workshops = new();
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
     private string _useWorkshopRepo = "";
@@ -252,6 +261,10 @@
         _handsup = s.HandsUp; _handoffs = s.Handoffs; _health = s.Health; _pulse = s.Pulse;
         _usageAsOf = s.UsageAsOf;
         _now = DateTime.UtcNow;
+        _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
+        if (_workshops.Count > 0 && _workshops.All(w => w.Dir != _selectedWorkshop))
+            _selectedWorkshop = _setupDir is not null && _workshops.Any(w => w.Dir == _setupDir)
+                ? _setupDir : _workshops[0].Dir;
     }
 
     private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd);
@@ -263,22 +276,21 @@
         StateHasChanged();
     }
 
-    private void StartDesk()
+    // Open a desk into a chosen workshop. The desk's working directory is the
+    // workshop root (so every desk shares that one bench); the name is only the
+    // session label. Nothing is combined from a bare name, so a desk can't land
+    // anywhere but inside a real workshop.
+    private void OpenDesk()
     {
-        var input = _newDeskName.Trim();
-        if (input.Length == 0) { _newDeskHint = "type a folder name first"; return; }
-        _newDeskHint = "";
-        var dir = (input.Contains('\\') || input.Contains('/') || input.Contains(':'))
-            ? input
-            : System.IO.Path.Combine(Config.DesksBaseDir, input);
-        var name = System.IO.Path.GetFileName(dir.TrimEnd('\\', '/'));
-        ConsoleLauncher.NewDesk(dir, name);
-        _newDeskName = "";
+        if (string.IsNullOrWhiteSpace(_selectedWorkshop)) { _deskHint = "pick a workshop first"; return; }
+        _deskHint = "";
+        ConsoleLauncher.NewDesk(_selectedWorkshop, _deskName.Trim());
+        _deskName = "";
     }
 
-    private void NewDeskKey(KeyboardEventArgs e)
+    private void DeskKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") StartDesk();
+        if (e.Key == "Enter") OpenDesk();
     }
 
     private async Task StartWorkshop()
@@ -292,7 +304,12 @@
         _busy = false;
         _setupMessage = result.Message;
         _setupDir = result.Ok ? result.Dir : null;   // ready; the operator opens a desk deliberately
-        if (result.Ok) _newWorkshopName = "";
+        if (result.Ok)
+        {
+            _newWorkshopName = "";
+            _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
+            if (result.Dir is not null) _selectedWorkshop = result.Dir;
+        }
         StateHasChanged();
     }
 
@@ -307,15 +324,13 @@
         _busy = false;
         _setupMessage = result.Message;
         _setupDir = result.Ok ? result.Dir : null;
-        if (result.Ok) _useWorkshopRepo = "";
+        if (result.Ok)
+        {
+            _useWorkshopRepo = "";
+            _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
+            if (result.Dir is not null) _selectedWorkshop = result.Dir;
+        }
         StateHasChanged();
-    }
-
-    // Step 2, done deliberately: open a desk in a workshop we just set up.
-    private void OpenDeskHere(string dir)
-    {
-        var name = System.IO.Path.GetFileName(dir.TrimEnd('\\', '/'));
-        ConsoleLauncher.NewDesk(dir, name);
     }
 
     private static string Conf(double? v) => v is double d ? d.ToString("0.00") : "-";

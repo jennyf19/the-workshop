@@ -13,9 +13,8 @@ var deskNames = Path.Combine(builder.Environment.ContentRootPath, "desk-names.js
 var resolvedPath = Path.Combine(builder.Environment.ContentRootPath, "handsup-resolved.json");
 builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath));
 
-var classroomDir = Directory.GetParent(builder.Environment.ContentRootPath)?.Parent?.FullName ?? builder.Environment.ContentRootPath;
-var workshopsDir = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? classroomDir;
-builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { DesksBaseDir = classroomDir, WorkshopsBaseDir = workshopsDir });
+var workshopsDir = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath;
+builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { WorkshopsBaseDir = workshopsDir });
 
 var app = builder.Build();
 
