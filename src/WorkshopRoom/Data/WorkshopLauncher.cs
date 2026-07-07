@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace WorkshopRoom.Data;
 
@@ -49,6 +50,58 @@ public static class WorkshopLauncher
             if (switched && !string.IsNullOrWhiteSpace(activeAccount))
                 GhAuth.Run($"auth switch -u {activeAccount}");
         }
+    }
+
+    // Clones an existing private repo the operator already has into the base dir
+    // and returns its folder, so the caller can open a desk in it. Acts as the
+    // repo's owner if that's one of the signed-in accounts (for private access),
+    // then always restores the active account.
+    public static WorkshopResult UseWorkshop(string repo, string baseDir, string? activeAccount, IEnumerable<string> knownLogins)
+    {
+        repo = (repo ?? "").Trim();
+        if (repo.Length == 0) return new(false, "enter a repo (owner/name)", null);
+        if (string.IsNullOrWhiteSpace(baseDir)) return new(false, "no base directory configured", null);
+
+        var (owner, name) = ParseRepo(repo);
+        if (owner is null || name is null) return new(false, "use owner/name (or a github url)", null);
+
+        var dir = Path.Combine(baseDir, name);
+        if (Directory.Exists(Path.Combine(dir, ".git")))
+            return new(true, $"using {owner}/{name} (already local)", dir);
+        if (Directory.Exists(dir) && Directory.EnumerateFileSystemEntries(dir).Any())
+            return new(false, $"{dir} exists but isn't a git clone", null);
+
+        var actAs = knownLogins.FirstOrDefault(l => string.Equals(l, owner, StringComparison.OrdinalIgnoreCase));
+        var switched = actAs is not null && !string.Equals(actAs, activeAccount, StringComparison.OrdinalIgnoreCase);
+        try
+        {
+            if (switched)
+            {
+                var (okSwitch, switchOut) = GhAuth.Run($"auth switch -u {actAs}");
+                if (!okSwitch) return new(false, $"couldn't switch gh to {actAs}: {Tail(switchOut)}", null);
+            }
+            var (okClone, cloneOut) = GhAuth.Run($"repo clone {owner}/{name} \"{dir}\"");
+            if (!okClone) return new(false, $"gh repo clone failed: {Tail(cloneOut)}", null);
+            return new(true, $"cloned {owner}/{name}", dir);
+        }
+        finally
+        {
+            if (switched && !string.IsNullOrWhiteSpace(activeAccount))
+                GhAuth.Run($"auth switch -u {activeAccount}");
+        }
+    }
+
+    // Parse "owner/name", a github URL, or "owner/name.git" into (owner, name).
+    internal static (string? owner, string? name) ParseRepo(string input)
+    {
+        input = (input ?? "").Trim();
+        input = Regex.Replace(input, @"^https?://github\.com/", "", RegexOptions.IgnoreCase);
+        input = Regex.Replace(input, @"\.git$", "", RegexOptions.IgnoreCase);
+        input = input.Trim('/');
+        var parts = input.Split('/');
+        if (parts.Length == 2 && parts[0].Length > 0 && parts[1].Length > 0)
+            return (parts[0], parts[1]);
+        return (null, null);
     }
 
     private static void Scaffold(string dir, string name)
