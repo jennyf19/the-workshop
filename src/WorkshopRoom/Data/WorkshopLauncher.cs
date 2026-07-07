@@ -138,6 +138,63 @@ public static class WorkshopLauncher
         return found.OrderBy(w => w.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    // Scaffolds a desk's own space inside a workshop so it has somewhere to keep
+    // its journal and brief before the agent arrives, plus a START-HERE it reads
+    // to orient. Idempotent: existing files are left as they are. Returns the
+    // desk folder.
+    public static string PrepareDesk(string workshopDir, string deskName)
+    {
+        var name = string.IsNullOrWhiteSpace(deskName) ? "desk" : deskName.Trim();
+        var deskDir = Path.Combine(workshopDir, "desks", name);
+        Directory.CreateDirectory(deskDir);
+        WriteIfMissing(Path.Combine(deskDir, "journal.md"), DeskJournal(name));
+        WriteIfMissing(Path.Combine(deskDir, "brief.md"), DeskBrief(name));
+        WriteIfMissing(Path.Combine(deskDir, "START-HERE.md"), DeskStartHere(name));
+        return deskDir;
+    }
+
+    private static void WriteIfMissing(string path, string content)
+    {
+        try { if (!File.Exists(path)) File.WriteAllText(path, content); }
+        catch { /* best effort */ }
+    }
+
+    private static string DeskJournal(string name) =>
+$@"# {name} — journal
+
+a running log for this desk: what you did, what you decided, what's next.
+append a short entry as you go; the operator reads this, not the transcript.
+
+<!-- newest last -->
+";
+
+    private static string DeskBrief(string name) =>
+$@"# {name} — brief
+
+what is this desk for? a line or two the operator (or the desk) fills in.
+
+- goal:
+- constraints:
+- done looks like:
+";
+
+    private static string DeskStartHere(string name) =>
+$@"# start here — {name}
+
+welcome to the bench. you're a partner in this workshop, not a tool waiting for
+instructions, so get your bearings and then bring your read.
+
+1. `CAIRN.md` — how a desk holds itself here. read it first.
+2. `protocol.md` and `hands-up.md` — how the room takes turns and raises a hand.
+3. the bench — the shared work; see where it stands.
+4. `./desks/{name}/journal.md` — your running log. the operator reads this, so
+   keep it honest and current.
+5. `./desks/{name}/brief.md` — what this desk is for.
+
+then tell the operator what you see and what you'd focus on. don't wait to be
+prompted perfectly. get going.
+";
+
     private static void Scaffold(string dir, string name)
     {
         Directory.CreateDirectory(dir);

@@ -308,7 +308,11 @@
             : System.IO.Path.Combine(Config.WorkshopsBaseDir, input);
         if (!System.IO.Directory.Exists(dir)) { _deskHint = $"no folder at {dir} — create a workshop first"; return; }
         _deskHint = "";
-        ConsoleLauncher.NewDesk(dir, _deskName.Trim());
+        var name = _deskName.Trim();
+        if (name.Length == 0) name = "desk";
+        WorkshopLauncher.PrepareDesk(dir, name);                 // give the desk its own space + journal + brief
+        var orient = $"read ./desks/{name}/START-HERE.md, then get going";
+        ConsoleLauncher.NewDesk(dir, name, orient);              // open at the workshop root, auto-oriented
         _deskName = "";
     }
 

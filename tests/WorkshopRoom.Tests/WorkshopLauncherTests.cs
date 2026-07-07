@@ -56,6 +56,44 @@ public class WorkshopLauncherTests
         WorkshopLauncher.ListWorkshops(missing).Should().BeEmpty();
     }
 
+    [Fact]
+    public void PrepareDesk_scaffolds_the_desk_folder_and_leaves_existing_files_alone()
+    {
+        var baseDir = Path.Combine(Path.GetTempPath(), "ws-desk-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var workshop = Path.Combine(baseDir, "shop");
+            Directory.CreateDirectory(workshop);
+
+            var deskDir = WorkshopLauncher.PrepareDesk(workshop, "alpha");
+
+            deskDir.Should().Be(Path.Combine(workshop, "desks", "alpha"));
+            File.Exists(Path.Combine(deskDir, "journal.md")).Should().BeTrue();
+            File.Exists(Path.Combine(deskDir, "brief.md")).Should().BeTrue();
+            File.Exists(Path.Combine(deskDir, "START-HERE.md")).Should().BeTrue();
+
+            // idempotent: a second call must not clobber edits to the journal
+            File.WriteAllText(Path.Combine(deskDir, "journal.md"), "my notes");
+            WorkshopLauncher.PrepareDesk(workshop, "alpha");
+            File.ReadAllText(Path.Combine(deskDir, "journal.md")).Should().Be("my notes");
+        }
+        finally { try { Directory.Delete(baseDir, recursive: true); } catch { } }
+    }
+
+    [Fact]
+    public void PrepareDesk_defaults_a_blank_name_to_desk()
+    {
+        var baseDir = Path.Combine(Path.GetTempPath(), "ws-desk-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var workshop = Path.Combine(baseDir, "shop");
+            Directory.CreateDirectory(workshop);
+            var deskDir = WorkshopLauncher.PrepareDesk(workshop, "  ");
+            deskDir.Should().Be(Path.Combine(workshop, "desks", "desk"));
+        }
+        finally { try { Directory.Delete(baseDir, recursive: true); } catch { } }
+    }
+
     private static void MakeRepo(string baseDir, string name, bool git, bool handsUp, bool classroom, bool desks)
     {
         var dir = Path.Combine(baseDir, name);

@@ -33,23 +33,26 @@ public static class ConsoleLauncher
     }
 
     // Starts a brand-new desk: ensures the folder exists, then opens a fresh
-    // Copilot CLI session there (named after the folder) in a new terminal.
-    public static bool NewDesk(string dir, string name)
+    // Copilot CLI session there in a new terminal. When an orientation prompt is
+    // given it's passed via -i, so the desk auto-runs it and hits the ground
+    // running (e.g. "read your START-HERE and get going").
+    public static bool NewDesk(string dir, string name, string? orient = null)
     {
         if (string.IsNullOrWhiteSpace(dir)) return false;
         try { Directory.CreateDirectory(dir); } catch { return false; }
         var nameArg = string.IsNullOrWhiteSpace(name) ? "" : $" --name \"{name}\"";
+        var orientArg = string.IsNullOrWhiteSpace(orient) ? "" : $" -i \"{orient}\"";
 
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{dir}\" copilot{nameArg}", UseShellExecute = true });
+            Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{dir}\" copilot{nameArg}{orientArg}", UseShellExecute = true });
             return true;
         }
         catch { /* fall through */ }
 
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = "pwsh.exe", Arguments = $"-NoExit -Command \"copilot{nameArg}\"", UseShellExecute = true, WorkingDirectory = dir });
+            Process.Start(new ProcessStartInfo { FileName = "pwsh.exe", Arguments = $"-NoExit -Command \"copilot{nameArg}{orientArg}\"", UseShellExecute = true, WorkingDirectory = dir });
             return true;
         }
         catch { return false; }
