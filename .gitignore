@@ -1,6 +1,9 @@
 # build output
 bin/
 obj/
+objd/
+.SharedData/
+Temp/
 
 # per-machine runtime state (never commit)
 *.db

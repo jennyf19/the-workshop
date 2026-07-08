@@ -378,7 +378,8 @@ public sealed class SessionStoreReader
     }
 
     // Operator action: reopen a closed desk (drop it from the closed set) so it
-    // shows on the board again.
+    // shows on the board again. Touches events.jsonl so the session re-enters the
+    // recency window and the scan picks it up immediately.
     public void Reopen(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId)) return;
@@ -388,6 +389,10 @@ public sealed class SessionStoreReader
             try { File.WriteAllText(_closedPath, JsonSerializer.Serialize(set)); }
             catch { /* best effort */ }
         }
+        // Touch the session's events file so the recency-windowed scan includes it.
+        var evPath = Path.Combine(_root, sessionId, "events.jsonl");
+        try { if (File.Exists(evPath)) File.SetLastWriteTimeUtc(evPath, DateTime.UtcNow); }
+        catch { /* best effort — the desk won't appear until the next natural write */ }
         lock (_lock) { _cache = null; }
     }
 

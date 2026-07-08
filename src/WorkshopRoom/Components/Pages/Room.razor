@@ -158,12 +158,17 @@
         </table>
         @if (_closed.Count > 0)
         {
-            <div class="closed-strip">
-                <span class="muted">closed:</span>
-                @foreach (var c in _closed)
-                {
-                    <span class="closed-chip">@c.Name <button class="link-btn" @onclick="() => ReopenDesk(c.SessionId)" title="bring this desk back to the board">reopen</button></span>
-                }
+            <div class="closed-section">
+                <div class="closed-head">
+                    <span class="closed-label">&#9724; closed desks</span>
+                    <span class="closed-count">@_closed.Count</span>
+                </div>
+                <div class="closed-strip">
+                    @foreach (var c in _closed)
+                    {
+                        <span class="closed-chip">@c.Name <button class="link-btn" @onclick="() => ReopenDesk(c.SessionId)" title="bring this desk back to the board">reopen</button></span>
+                    }
+                </div>
             </div>
         }
     </section>
