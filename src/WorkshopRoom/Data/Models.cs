@@ -44,3 +44,23 @@ public record Health(
 public record PulseCheck(string Name, string Verdict, string Detail);
 
 public record Pulse(string Temperature, string Headline, List<PulseCheck> Checks);
+
+// An agent signal emitted by a desk — the structured self-report that gives
+// the operator live insight into what the agent thinks about its own work.
+// Signal types: execution (after a task), escalation (needs help), partnership
+// (one agent reviewing another), outcome (independent eval).
+public record AgentSignal(
+    string SignalType,           // execution | escalation | partnership | outcome
+    string DeskName,            // which desk emitted this
+    string AgentName,           // agent_name from the signal
+    int Confidence,             // self_assessment.confidence (1-5)
+    int Accuracy,               // self_assessment.accuracy (1-5)
+    int Completeness,           // self_assessment.completeness (1-5)
+    string WhatWorked,          // patterns.what_worked
+    string WhatWasHard,         // patterns.what_was_hard
+    string SkillGap,            // patterns.skill_gap
+    string? EscalationReason,   // escalation.reason (null if not an escalation)
+    string? EscalationBlocked,  // escalation.blocked_on
+    string? Recommendation,     // escalation.recommendation
+    DateTime EmittedAt,         // file mtime (when the signal was written)
+    string FilePath);           // full path to the signal file

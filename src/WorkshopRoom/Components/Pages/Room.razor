@@ -109,6 +109,7 @@
             <tbody>
                 @foreach (var d in _desks)
                 {
+                    var sig = SignalReader.LatestForDesk(_signals, d.Name);
                     <tr>
                         <td><strong>@d.Name</strong><div class="sub">@d.Note</div></td>
                         <td><span class="mod mod-@d.Modality">@d.Modality</span></td>
@@ -153,6 +154,32 @@
                             }
                         </td>
                     </tr>
+                    @if (sig is not null)
+                    {
+                        <tr class="signal-row">
+                            <td colspan="8">
+                                <div class="signal-strip">
+                                    <span class="signal-type st-@sig.SignalType" title="@sig.SignalType signal">@SignalIcon(sig.SignalType)</span>
+                                    <span class="signal-scores" title="confidence / accuracy / completeness">
+                                        @ScoreDots(sig.Confidence) @ScoreDots(sig.Accuracy) @ScoreDots(sig.Completeness)
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(sig.WhatWorked))
+                                    {
+                                        <span class="signal-note good" title="what worked">&#10003; @Truncate(sig.WhatWorked, 60)</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(sig.WhatWasHard))
+                                    {
+                                        <span class="signal-note hard" title="what was hard">&#9888; @Truncate(sig.WhatWasHard, 60)</span>
+                                    }
+                                    @if (sig.EscalationReason is not null)
+                                    {
+                                        <span class="signal-note escalation" title="escalation: @sig.EscalationBlocked">&#9889; @Truncate(sig.EscalationReason, 80)</span>
+                                    }
+                                    <span class="signal-age muted">@Ago(sig.EmittedAt)</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -262,6 +289,7 @@
     private List<WorkshopLauncher.WorkshopInfo> _workshops = new();
     private List<ClosedDesk> _closed = new();
     private List<WorkshopLauncher.DeskFolder> _dormant = new();
+    private List<AgentSignal> _signals = new();
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
     private string _setupMessage = "";
@@ -301,6 +329,9 @@
             .SelectMany(w => WorkshopLauncher.ListDeskFolders(w.Dir))
             .Where(df => !activeNames.Contains(df.Name))
             .ToList();
+
+        // Signals = latest agent signal per desk (from .signals/ folders)
+        _signals = SignalReader.ReadLatestSignals(_workshops.Select(w => w.Dir));
     }
 
     private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd);
@@ -436,6 +467,27 @@
         if (s < 3600) return $"{(int)(s / 60)}m ago";
         return $"{(int)(s / 3600)}h ago";
     }
+
+    private static string SignalIcon(string type) => type switch
+    {
+        "escalation" => "\u26A1",   // lightning bolt
+        "partnership" => "\u2194",  // left-right arrow
+        "outcome" => "\u2713",      // checkmark
+        _ => "\u25C8"               // diamond (execution)
+    };
+
+    private static string ScoreDots(int score) => score switch
+    {
+        >= 5 => "\u25CF\u25CF\u25CF\u25CF\u25CF",
+        4 => "\u25CF\u25CF\u25CF\u25CF\u25CB",
+        3 => "\u25CF\u25CF\u25CF\u25CB\u25CB",
+        2 => "\u25CF\u25CF\u25CB\u25CB\u25CB",
+        1 => "\u25CF\u25CB\u25CB\u25CB\u25CB",
+        _ => "\u25CB\u25CB\u25CB\u25CB\u25CB"
+    };
+
+    private static string Truncate(string s, int max) =>
+        s.Length <= max ? s : s[..max] + "\u2026";
 
     public void Dispose() => _tick?.Dispose();
 }

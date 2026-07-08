@@ -177,9 +177,11 @@ public static class WorkshopLauncher
         var name = string.IsNullOrWhiteSpace(deskName) ? "desk" : deskName.Trim();
         var deskDir = Path.Combine(workshopDir, "desks", name);
         Directory.CreateDirectory(deskDir);
+        Directory.CreateDirectory(Path.Combine(deskDir, ".signals"));
         WriteIfMissing(Path.Combine(deskDir, "journal.md"), DeskJournal(name));
         WriteIfMissing(Path.Combine(deskDir, "brief.md"), DeskBrief(name));
         WriteIfMissing(Path.Combine(deskDir, "START-HERE.md"), DeskStartHere(name));
+        WriteIfMissing(Path.Combine(deskDir, ".signals", "PROTOCOL.md"), SignalProtocol(name));
         return deskDir;
     }
 
@@ -222,6 +224,9 @@ instructions, so get your bearings and then bring your read.
 4. keep your running notes in `./desks/{name}/journal.md` — the operator reads
    this, so keep it honest and current.
 5. `./desks/{name}/brief.md` — what this desk is for.
+6. **emit signals** — after completing meaningful work, write a signal to
+   `./desks/{name}/.signals/`. see `.signals/PROTOCOL.md` for the format.
+   this is how the dashboard knows what you're thinking and what you need.
 
 then tell the operator what you see and what you'd focus on. don't wait to be
 prompted perfectly. get going.
@@ -343,5 +348,87 @@ one line each; the operator reads this, not the transcripts.
 - settle against facts — code, tests, a fresh desk — not against each other.
 - fetch + rebase before you push, so the room doesn't step on itself.
 - when you can't settle it, raise a hand (hands-up.md); don't force it.
+";
+
+    private static string SignalProtocol(string deskName) =>
+$@"# signal protocol — {deskName}
+
+emit a signal after meaningful work so the dashboard knows what you're thinking.
+write a JSON file here (any filename ending `.json`). the dashboard reads the
+most recent one.
+
+## when to signal
+
+- after completing a task or unit of work (execution)
+- when you're blocked and need a human decision (escalation)
+- when reviewing another desk's output (partnership)
+
+## format
+
+```json
+{{
+  ""signal_type"": ""execution"",
+  ""schema_version"": ""0.1.0"",
+  ""agent_name"": ""{deskName}"",
+
+  ""self_assessment"": {{
+    ""confidence"": 4,
+    ""accuracy"": 4,
+    ""completeness"": 3
+  }},
+
+  ""patterns"": {{
+    ""what_worked"": ""clear requirement, good test coverage"",
+    ""what_was_hard"": ""edge case in timezone handling"",
+    ""skill_gap"": """",
+    ""improvisation"": """"
+  }}
+}}
+```
+
+## escalation (when you're stuck)
+
+```json
+{{
+  ""signal_type"": ""escalation"",
+  ""schema_version"": ""0.1.0"",
+  ""agent_name"": ""{deskName}"",
+
+  ""self_assessment"": {{
+    ""confidence"": 1,
+    ""accuracy"": 2,
+    ""completeness"": 1
+  }},
+
+  ""escalation"": {{
+    ""reason"": ""need architectural decision"",
+    ""blocked_on"": ""which auth provider to use"",
+    ""recommendation"": ""suggest OAuth2 with PKCE""
+  }},
+
+  ""patterns"": {{
+    ""what_worked"": ""identified the options clearly"",
+    ""what_was_hard"": ""can't choose without business context""
+  }}
+}}
+```
+
+## scores (1-5)
+
+- **confidence**: how sure are you the work is correct?
+- **accuracy**: how precise is what you produced?
+- **completeness**: how much of the task did you finish?
+
+be honest. a 3 is fine. low confidence with good reasoning is more useful than
+a confident 5 that's wrong. the dashboard shows these so the operator knows
+where to look.
+
+## naming
+
+name your signal files anything — `signal.json`, `{deskName}-001.json`, a UUID.
+only the most recent (by file mtime) is shown on the dashboard. old signals
+accumulate as a history log.
+
+works with: GitHub Copilot CLI, Claude Code, or any agent that can write a file.
 ";
 }
