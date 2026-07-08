@@ -107,17 +107,12 @@
         @if (_signals.Count > 0)
         {
             <div class="signal-key">
-                <span class="key-title">signal key:</span>
+                <span class="key-title">signals:</span>
                 <span class="key-item"><span class="signal-type st-execution">&#x25C8;</span> execution</span>
                 <span class="key-item"><span class="signal-type st-escalation">&#x26A1;</span> escalation</span>
                 <span class="key-item"><span class="signal-type st-partnership">&#x2194;</span> partnership</span>
-                <span class="key-item"><span class="signal-type st-outcome">&#x2713;</span> outcome</span>
                 <span class="key-sep">|</span>
-                <span class="key-item">scores 1–5:</span>
-                <span class="key-item"><span class="score-label">intent</span> = understood the ask</span>
-                <span class="key-item"><span class="score-label">conf</span> = sure it's correct</span>
-                <span class="key-item"><span class="score-label">acc</span> = precise</span>
-                <span class="key-item"><span class="score-label">comp</span> = how much done</span>
+                <span class="key-item">shows weakest score (hover for all 4: intent · confidence · accuracy · completeness)</span>
             </div>
         }
         <table>
@@ -172,25 +167,37 @@
                     </tr>
                     @if (sig is not null)
                     {
-                        <tr class="signal-row">
+                        var (weakLabel, weakScore) = WeakestScore(sig);
+                        var alertLevel = sig.SignalType == "escalation" ? "alert-escalation"
+                            : weakScore <= 2 ? "alert-warn"
+                            : "";
+                        <tr class="signal-row @alertLevel">
                             <td colspan="8">
-                                <div class="signal-strip">
-                                    <span class="signal-type st-@sig.SignalType" title="@sig.SignalType signal">@SignalIcon(sig.SignalType)</span>
-                                    <span class="signal-score" title="intent: did I understand the ask?"><span class="score-label">intent</span> @ScoreDots(sig.Intent)</span>
-                                    <span class="signal-score" title="confidence: how sure am I?"><span class="score-label">conf</span> @ScoreDots(sig.Confidence)</span>
-                                    <span class="signal-score" title="accuracy: how precise?"><span class="score-label">acc</span> @ScoreDots(sig.Accuracy)</span>
-                                    <span class="signal-score" title="completeness: how much done?"><span class="score-label">comp</span> @ScoreDots(sig.Completeness)</span>
-                                    @if (!string.IsNullOrEmpty(sig.WhatWorked))
+                                <div class="signal-strip" title="@SignalTooltip(sig)">
+                                    <span class="signal-type st-@sig.SignalType">@SignalIcon(sig.SignalType)</span>
+                                    @if (sig.SignalType == "escalation")
                                     {
-                                        <span class="signal-note good" title="what worked">&#10003; @Truncate(sig.WhatWorked, 50)</span>
+                                        <span class="signal-escalation">&#9889; @Truncate(sig.EscalationReason ?? "needs help", 80)</span>
+                                        @if (!string.IsNullOrEmpty(sig.EscalationBlocked))
+                                        {
+                                            <span class="signal-blocked">blocked: @Truncate(sig.EscalationBlocked, 50)</span>
+                                        }
                                     }
-                                    @if (!string.IsNullOrEmpty(sig.WhatWasHard))
+                                    else
                                     {
-                                        <span class="signal-note hard" title="what was hard">&#9888; @Truncate(sig.WhatWasHard, 50)</span>
-                                    }
-                                    @if (sig.EscalationReason is not null)
-                                    {
-                                        <span class="signal-note escalation" title="escalation: @sig.EscalationBlocked">&#9889; @Truncate(sig.EscalationReason, 70)</span>
+                                        <span class="signal-weak @(weakScore <= 2 ? "score-low" : "")">@weakLabel @weakScore/5</span>
+                                        @if (weakScore <= 2 && weakLabel == "intent")
+                                        {
+                                            <span class="signal-warn">may be off track</span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(sig.WhatWasHard))
+                                        {
+                                            <span class="signal-note hard">&#9888; @Truncate(sig.WhatWasHard, 55)</span>
+                                        }
+                                        else if (!string.IsNullOrEmpty(sig.WhatWorked))
+                                        {
+                                            <span class="signal-note good">&#10003; @Truncate(sig.WhatWorked, 55)</span>
+                                        }
                                     }
                                     <span class="signal-age muted">@Ago(sig.EmittedAt)</span>
                                 </div>
@@ -492,6 +499,27 @@
         "outcome" => "\u2713",      // checkmark
         _ => "\u25C8"               // diamond (execution)
     };
+
+    private static (string label, int score) WeakestScore(AgentSignal sig)
+    {
+        // Return the lowest non-zero score (where the operator should look).
+        // Intent leads in ties because a misunderstood ask invalidates everything else.
+        var scores = new (string label, int score)[]
+        {
+            ("intent", sig.Intent),
+            ("confidence", sig.Confidence),
+            ("accuracy", sig.Accuracy),
+            ("completeness", sig.Completeness)
+        };
+        var lowest = scores.Where(s => s.score > 0).OrderBy(s => s.score).ThenBy(s => s.label == "intent" ? 0 : 1).FirstOrDefault();
+        return lowest.score > 0 ? lowest : ("confidence", 0);
+    }
+
+    private static string SignalTooltip(AgentSignal sig) =>
+        $"intent {sig.Intent}/5 · confidence {sig.Confidence}/5 · accuracy {sig.Accuracy}/5 · completeness {sig.Completeness}/5" +
+        (string.IsNullOrEmpty(sig.WhatWorked) ? "" : $"\n✓ {sig.WhatWorked}") +
+        (string.IsNullOrEmpty(sig.WhatWasHard) ? "" : $"\n⚠ {sig.WhatWasHard}") +
+        (string.IsNullOrEmpty(sig.SkillGap) ? "" : $"\n◇ skill gap: {sig.SkillGap}");
 
     private static string ScoreDots(int score) => score switch
     {
