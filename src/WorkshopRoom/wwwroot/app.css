@@ -104,9 +104,11 @@ h1 { font-size: 1.5rem; margin: 0; }
 .closed-section { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px dashed var(--line); }
 .closed-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .closed-label { font-size: 0.82rem; font-weight: 600; color: var(--fg); letter-spacing: 0.02em; }
+.dormant-label { font-size: 0.82rem; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
 .closed-count { font-size: 0.72rem; background: var(--line); color: var(--muted); border-radius: 999px; padding: 0.1rem 0.45rem; font-family: var(--mono); }
 .closed-strip { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; font-size: 0.78rem; }
 .closed-chip { display: inline-flex; align-items: center; gap: 0.35rem; background: var(--card); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 0.2rem 0.6rem; }
+.dormant-chip { display: inline-flex; align-items: center; gap: 0.35rem; background: var(--bg); border: 1px dashed var(--line); color: var(--muted); border-radius: 999px; padding: 0.2rem 0.6rem; }
 .sync { font-size: 0.7rem; font-family: var(--mono); margin-left: 0.35rem; }
 .sync-wip { color: var(--warn); }
 .sync-ahead { color: var(--accent); }

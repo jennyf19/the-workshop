@@ -171,6 +171,21 @@
                 </div>
             </div>
         }
+        @if (_dormant.Count > 0)
+        {
+            <div class="closed-section">
+                <div class="closed-head">
+                    <span class="dormant-label">&#9711; dormant desks</span>
+                    <span class="closed-count">@_dormant.Count</span>
+                </div>
+                <div class="closed-strip">
+                    @foreach (var d in _dormant)
+                    {
+                        <span class="dormant-chip" title="@d.Path (@d.Location/)">@d.Name <button class="link-btn" @onclick="() => StartDormantDesk(d)">start</button></span>
+                    }
+                </div>
+            </div>
+        }
     </section>
 
     <section class="panel">
@@ -246,6 +261,7 @@
     private readonly HashSet<string> _closing = new();
     private List<WorkshopLauncher.WorkshopInfo> _workshops = new();
     private List<ClosedDesk> _closed = new();
+    private List<WorkshopLauncher.DeskFolder> _dormant = new();
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
     private string _setupMessage = "";
@@ -278,6 +294,13 @@
         _now = DateTime.UtcNow;
         _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
         _closed = Reader.ClosedDesks();
+
+        // Dormant = desk folders on disk that have no active session on the board.
+        var activeNames = new HashSet<string>(_desks.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
+        _dormant = _workshops
+            .SelectMany(w => WorkshopLauncher.ListDeskFolders(w.Dir))
+            .Where(df => !activeNames.Contains(df.Name))
+            .ToList();
     }
 
     private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd);
@@ -304,6 +327,16 @@
         Reader.Reopen(sessionId);
         Load();
         StateHasChanged();
+    }
+
+    // Start a dormant desk — a folder that exists on disk but has no active session.
+    private void StartDormantDesk(WorkshopLauncher.DeskFolder df)
+    {
+        var workshopDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetDirectoryName(df.Path))!;
+        var orient = System.IO.File.Exists(System.IO.Path.Combine(df.Path, "START-HERE.md"))
+            ? $"read ./{df.Location}/{df.Name}/START-HERE.md, then get going"
+            : $"read ./{df.Location}/{df.Name}/README.md if it exists, orient yourself, then get going";
+        ConsoleLauncher.NewDesk(workshopDir, df.Name, orient);
     }
 
     private void Resolve(HandsUp h)

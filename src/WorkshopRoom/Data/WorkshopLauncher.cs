@@ -138,6 +138,36 @@ public static class WorkshopLauncher
         return found.OrderBy(w => w.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    // Returns all desk folder names found under a workshop's desks/ and classroom/
+    // directories. Used to show "dormant" desks that exist on disk but have no
+    // active session, so the operator can spin one up with a click.
+    public static List<DeskFolder> ListDeskFolders(string workshopDir)
+    {
+        var result = new List<DeskFolder>();
+        if (string.IsNullOrWhiteSpace(workshopDir) || !Directory.Exists(workshopDir)) return result;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Scan(string parent, string location)
+        {
+            try
+            {
+                if (!Directory.Exists(parent)) return;
+                foreach (var d in Directory.EnumerateDirectories(parent))
+                {
+                    var name = Path.GetFileName(d);
+                    if (name.StartsWith('.') || name == "bin" || name == "obj") continue;
+                    if (seen.Add(name))
+                        result.Add(new DeskFolder(name, d, location));
+                }
+            }
+            catch { /* skip unreadable */ }
+        }
+        Scan(Path.Combine(workshopDir, "desks"), "desks");
+        Scan(Path.Combine(workshopDir, "classroom"), "classroom");
+        return result.OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    public record DeskFolder(string Name, string Path, string Location);
+
     // Scaffolds a desk's own space inside a workshop so it has somewhere to keep
     // its journal and brief before the agent arrives, plus a START-HERE it reads
     // to orient. Idempotent: existing files are left as they are. Returns the
