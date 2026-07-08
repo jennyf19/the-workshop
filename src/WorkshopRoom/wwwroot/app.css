@@ -124,12 +124,18 @@ h1 { font-size: 1.5rem; margin: 0; }
 .signal-type.st-execution { color: var(--accent); }
 .signal-type.st-partnership { color: #8b5cf6; }
 .signal-type.st-outcome { color: var(--good); }
+.signal-score { display: inline-flex; align-items: center; gap: 0.2rem; font-family: var(--mono); font-size: 0.68rem; color: var(--fg); opacity: 0.8; }
+.score-label { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
 .signal-scores { font-family: var(--mono); font-size: 0.65rem; letter-spacing: -0.5px; color: var(--fg); opacity: 0.7; }
 .signal-note { max-width: 30ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .signal-note.good { color: var(--good); }
 .signal-note.hard { color: var(--warn); }
 .signal-note.escalation { color: #f87171; font-weight: 500; }
 .signal-age { font-size: 0.7rem; margin-left: auto; }
+.signal-key { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.7rem; color: var(--muted); margin-bottom: 0.6rem; padding: 0.35rem 0.5rem; background: rgba(42,45,53,0.3); border-radius: 4px; }
+.key-title { font-weight: 600; color: var(--fg); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.3px; }
+.key-item { display: inline-flex; align-items: center; gap: 0.25rem; }
+.key-sep { color: var(--line); }
 
 /* grid of panels */
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }

@@ -99,12 +99,13 @@ public static class SignalReader
             var agentName = GetString(root, "agent_name") ?? deskName;
 
             // Self-assessment
-            int confidence = 0, accuracy = 0, completeness = 0;
+            int confidence = 0, accuracy = 0, completeness = 0, intent = 0;
             if (root.TryGetProperty("self_assessment", out var sa))
             {
                 confidence = GetInt(sa, "confidence");
                 accuracy = GetInt(sa, "accuracy");
                 completeness = GetInt(sa, "completeness");
+                intent = GetInt(sa, "intent");
             }
 
             // Patterns
@@ -129,7 +130,7 @@ public static class SignalReader
 
             return new AgentSignal(
                 signalType, deskName, agentName,
-                confidence, accuracy, completeness,
+                confidence, accuracy, completeness, intent,
                 whatWorked, whatWasHard, skillGap,
                 escalationReason, escalationBlocked, recommendation,
                 emitted, path);

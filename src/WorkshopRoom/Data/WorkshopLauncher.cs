@@ -372,6 +372,7 @@ most recent one.
   ""agent_name"": ""{deskName}"",
 
   ""self_assessment"": {{
+    ""intent"": 5,
     ""confidence"": 4,
     ""accuracy"": 4,
     ""completeness"": 3
@@ -395,6 +396,7 @@ most recent one.
   ""agent_name"": ""{deskName}"",
 
   ""self_assessment"": {{
+    ""intent"": 3,
     ""confidence"": 1,
     ""accuracy"": 2,
     ""completeness"": 1
@@ -415,6 +417,7 @@ most recent one.
 
 ## scores (1-5)
 
+- **intent**: did I understand what you actually wanted?
 - **confidence**: how sure are you the work is correct?
 - **accuracy**: how precise is what you produced?
 - **completeness**: how much of the task did you finish?

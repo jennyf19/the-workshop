@@ -56,6 +56,7 @@ public record AgentSignal(
     int Confidence,             // self_assessment.confidence (1-5)
     int Accuracy,               // self_assessment.accuracy (1-5)
     int Completeness,           // self_assessment.completeness (1-5)
+    int Intent,                 // self_assessment.intent (1-5) — did I understand the ask?
     string WhatWorked,          // patterns.what_worked
     string WhatWasHard,         // patterns.what_was_hard
     string SkillGap,            // patterns.skill_gap

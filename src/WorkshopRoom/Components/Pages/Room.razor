@@ -104,6 +104,22 @@
 
     <section class="panel">
         <h2>desks <span class="count">@_desks.Count</span></h2>
+        @if (_signals.Count > 0)
+        {
+            <div class="signal-key">
+                <span class="key-title">signal key:</span>
+                <span class="key-item"><span class="signal-type st-execution">&#x25C8;</span> execution</span>
+                <span class="key-item"><span class="signal-type st-escalation">&#x26A1;</span> escalation</span>
+                <span class="key-item"><span class="signal-type st-partnership">&#x2194;</span> partnership</span>
+                <span class="key-item"><span class="signal-type st-outcome">&#x2713;</span> outcome</span>
+                <span class="key-sep">|</span>
+                <span class="key-item">scores 1–5:</span>
+                <span class="key-item"><span class="score-label">intent</span> = understood the ask</span>
+                <span class="key-item"><span class="score-label">conf</span> = sure it's correct</span>
+                <span class="key-item"><span class="score-label">acc</span> = precise</span>
+                <span class="key-item"><span class="score-label">comp</span> = how much done</span>
+            </div>
+        }
         <table>
             <thead><tr><th>desk</th><th>modality</th><th>model</th><th>tokens</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
             <tbody>
@@ -160,20 +176,21 @@
                             <td colspan="8">
                                 <div class="signal-strip">
                                     <span class="signal-type st-@sig.SignalType" title="@sig.SignalType signal">@SignalIcon(sig.SignalType)</span>
-                                    <span class="signal-scores" title="confidence / accuracy / completeness">
-                                        @ScoreDots(sig.Confidence) @ScoreDots(sig.Accuracy) @ScoreDots(sig.Completeness)
-                                    </span>
+                                    <span class="signal-score" title="intent: did I understand the ask?"><span class="score-label">intent</span> @ScoreDots(sig.Intent)</span>
+                                    <span class="signal-score" title="confidence: how sure am I?"><span class="score-label">conf</span> @ScoreDots(sig.Confidence)</span>
+                                    <span class="signal-score" title="accuracy: how precise?"><span class="score-label">acc</span> @ScoreDots(sig.Accuracy)</span>
+                                    <span class="signal-score" title="completeness: how much done?"><span class="score-label">comp</span> @ScoreDots(sig.Completeness)</span>
                                     @if (!string.IsNullOrEmpty(sig.WhatWorked))
                                     {
-                                        <span class="signal-note good" title="what worked">&#10003; @Truncate(sig.WhatWorked, 60)</span>
+                                        <span class="signal-note good" title="what worked">&#10003; @Truncate(sig.WhatWorked, 50)</span>
                                     }
                                     @if (!string.IsNullOrEmpty(sig.WhatWasHard))
                                     {
-                                        <span class="signal-note hard" title="what was hard">&#9888; @Truncate(sig.WhatWasHard, 60)</span>
+                                        <span class="signal-note hard" title="what was hard">&#9888; @Truncate(sig.WhatWasHard, 50)</span>
                                     }
                                     @if (sig.EscalationReason is not null)
                                     {
-                                        <span class="signal-note escalation" title="escalation: @sig.EscalationBlocked">&#9889; @Truncate(sig.EscalationReason, 80)</span>
+                                        <span class="signal-note escalation" title="escalation: @sig.EscalationBlocked">&#9889; @Truncate(sig.EscalationReason, 70)</span>
                                     }
                                     <span class="signal-age muted">@Ago(sig.EmittedAt)</span>
                                 </div>
