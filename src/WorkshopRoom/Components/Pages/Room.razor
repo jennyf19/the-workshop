@@ -4,6 +4,7 @@
 @inject SessionStoreReader Reader
 @inject RoomConfig Config
 @inject WorkshopArchive Archive
+@inject IJSRuntime JS
 
 <PageTitle>the workshop</PageTitle>
 
@@ -15,6 +16,7 @@
         <button class="seg @(_advanced ? "" : "on")" @onclick="() => _advanced = false" title="just your desks, grouped by workshop, with tokens and signals">simple</button>
         <button class="seg @(_advanced ? "on" : "")" @onclick="() => _advanced = true" title="everything: pulse, metrics, AIC, bench and handoffs">everything</button>
     </div>
+    <button class="theme-toggle" @onclick="ToggleTheme" aria-label="@(_isLight ? "switch to dark mode" : "switch to light mode")" title="@(_isLight ? "switch to dark mode" : "switch to light mode")">@(_isLight ? "\u263D dark" : "\u2600 light")</button>
 </div>
 
 @if (_advanced)
@@ -456,6 +458,7 @@
     private List<string> _staleDesks = new();
     private List<WorkshopGroup> _workshopGroups = new();
     private bool _advanced;   // false = "keep it simple" default; true = "show me everything"
+    private bool _isLight;    // reflects the client theme (synced after first render)
     private string _newWorkshopName = "";
     private string _newMiniName = "";
     private string _workshopOwner = "";
@@ -479,6 +482,30 @@
             Load();
             StateHasChanged();
         }), null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+    }
+
+    // The theme is applied client-side (before paint) from localStorage; after
+    // the first render we read it back so the toggle's label matches.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var t = await JS.InvokeAsync<string>("workshopTheme.get");
+            var light = string.Equals(t, "light", StringComparison.OrdinalIgnoreCase);
+            if (light != _isLight) { _isLight = light; StateHasChanged(); }
+        }
+        catch { /* JS not ready — the label just defaults to dark */ }
+    }
+
+    private async Task ToggleTheme()
+    {
+        try
+        {
+            var t = await JS.InvokeAsync<string>("workshopTheme.toggle");
+            _isLight = string.Equals(t, "light", StringComparison.OrdinalIgnoreCase);
+        }
+        catch { /* JS unavailable — no-op */ }
     }
 
     private void Load()

@@ -5,6 +5,23 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    <script>
+        // Apply the saved theme before first paint so there's no flash.
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('theme'); } catch (e) { }
+            document.documentElement.dataset.theme = (t === 'light' || t === 'dark') ? t : 'dark';
+            window.workshopTheme = {
+                get: function () { return document.documentElement.dataset.theme || 'dark'; },
+                toggle: function () {
+                    var next = (document.documentElement.dataset.theme === 'light') ? 'dark' : 'light';
+                    document.documentElement.dataset.theme = next;
+                    try { localStorage.setItem('theme', next); } catch (e) { }
+                    return next;
+                }
+            };
+        })();
+    </script>
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["WorkshopRoom.styles.css"]" />

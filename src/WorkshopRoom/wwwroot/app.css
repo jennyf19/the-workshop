@@ -9,6 +9,26 @@
     --good: #34d399;
     --warn: #fbbf24;
     --bad: #f87171;
+    /* form surfaces — kept distinct from --bg so inputs are visible */
+    --input-bg: #20242e;
+    --input-border: #3d434f;
+    --placeholder: #9ca1ab;
+}
+
+/* light theme — applied via <html data-theme="light"> (set before paint) */
+[data-theme="light"] {
+    --bg: #f5f6f8;
+    --fg: #1b1e25;
+    --muted: #5b616e;
+    --line: #d3d7de;
+    --accent: #2563eb;
+    --card: #ffffff;
+    --good: #0f8a4c;
+    --warn: #a86616;
+    --bad: #c8352b;
+    --input-bg: #ffffff;
+    --input-border: #aab0bc;
+    --placeholder: #6a7181;
 }
 
 * { box-sizing: border-box; }
@@ -83,9 +103,9 @@ h1 { font-size: 1.5rem; margin: 0; }
 .link-btn:hover { text-decoration: underline; }
 .in-console { color: var(--good); font-size: 0.78rem; font-family: var(--mono); white-space: nowrap; }
 .newdesk { display: inline-flex; gap: 0.4rem; align-items: center; margin-left: auto; }
-.nd-input { background: var(--bg); border: 1px solid var(--line); color: var(--fg); border-radius: 5px; padding: 0.32rem 0.55rem; font-size: 0.8rem; width: 190px; }
-.nd-input:focus { outline: none; border-color: var(--accent); }
-.nd-input::placeholder { color: var(--muted); }
+.nd-input { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--fg); border-radius: 5px; padding: 0.32rem 0.55rem; font-size: 0.8rem; width: 190px; }
+.nd-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.nd-input::placeholder { color: var(--placeholder); opacity: 1; }
 .nd-label { color: var(--muted); font-size: 0.8rem; }
 .nd-hint { color: var(--warn); font-size: 0.75rem; }
 .setup { display: flex; flex-direction: column; gap: 0.45rem; margin: 0.3rem 0 0.9rem; padding: 0.6rem 0.8rem; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
@@ -121,6 +141,17 @@ h1 { font-size: 1.5rem; margin: 0; }
 .view-switch .seg { padding: 0.3rem 0.8rem; border: 0; background: var(--card); color: var(--muted); font-size: 0.75rem; cursor: pointer; }
 .view-switch .seg:hover { color: var(--fg); }
 .view-switch .seg.on { background: rgba(93,164,255,0.16); color: var(--accent); font-weight: 600; }
+
+/* theme toggle — light / dark */
+.theme-toggle { padding: 0.3rem 0.6rem; border-radius: 14px; border: 1px solid var(--input-border); background: var(--card); color: var(--fg); font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+/* visible keyboard focus for all interactive elements (a11y) */
+.btn:focus-visible, .link-btn:focus-visible, .chip:focus-visible, .seg:focus-visible,
+.theme-toggle:focus-visible, select:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
 
 /* ops strip — coordination layer summary */
 .ops-strip { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.7rem; margin-bottom: 0.5rem; background: rgba(42,45,53,0.4); border-radius: 4px; border-left: 3px solid var(--accent); font-size: 0.78rem; }
