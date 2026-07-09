@@ -105,15 +105,15 @@
     <div class="step">
         <span class="step-num">1</span>
         <span class="nd-label">create a workshop:</span>
-        <input class="nd-input" @bind="_newWorkshopName" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="new repo name" />
-        <select class="nd-input" @bind="_workshopOwner" @onfocus="() => _typing = true" @onblur="() => _typing = false">
+        <input class="nd-input" @bind="_newWorkshopName" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="new repo name" aria-label="new workshop repo name" />
+        <select class="nd-input" @bind="_workshopOwner" @onfocus="() => _typing = true" @onblur="() => _typing = false" aria-label="workshop owner account">
             @foreach (var l in _ghLogins) { <option value="@l.Login">@l.Login@(l.IsActive ? " (active)" : "")</option> }
         </select>
         <button class="btn" @onclick="StartWorkshop" disabled="@_busy">@(_busy ? "creating..." : "create workshop")</button>
     </div>
     <div class="step sub">
         <span class="nd-label muted">or, no repo needed:</span>
-        <input class="nd-input" @bind="_newMiniName" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="mini-workshop name" />
+        <input class="nd-input" @bind="_newMiniName" @bind:event="oninput" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="mini-workshop name" aria-label="mini-workshop name" />
         <button class="btn ghost" @onclick="StartMiniWorkshop" disabled="@_busy">create mini-workshop (local)</button>
         <span class="nd-hint">a local folder you point an agent at &mdash; graduates to a full workshop later</span>
     </div>
@@ -131,11 +131,11 @@
         {
             <button class="chip @(_deskFolder == w.Dir ? "on" : "")" @onclick="() => PickWorkshop(w.Dir)" title="@w.Dir">@w.Name@if (w.IsMini) { <span class="mini-tag"> mini</span> }</button>
         }
-        <input class="nd-input wide" @bind="_deskFolder" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder, e.g. Ember_workshop" autocomplete="off" spellcheck="false" />
-        <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" autocomplete="off" spellcheck="false" />
+        <input class="nd-input wide" @bind="_deskFolder" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder, e.g. Ember_workshop" autocomplete="off" spellcheck="false" aria-label="workshop folder to open a desk in" />
+        <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" autocomplete="off" spellcheck="false" aria-label="desk name (optional)" />
         @if (_agents.Count > 1)
         {
-            <select class="nd-input" @bind="_deskAgent" title="which agent CLI to launch this desk with">
+            <select class="nd-input" @bind="_deskAgent" title="which agent CLI to launch this desk with" aria-label="agent CLI to launch this desk with">
                 @foreach (var a in _agents) { <option value="@a.Key">@a.Label</option> }
             </select>
         }
@@ -160,9 +160,9 @@
         {
             <div class="signal-key">
                 <span class="key-title">signals:</span>
-                <span class="key-item"><span class="signal-type st-execution">&#x25C8;</span> execution</span>
-                <span class="key-item"><span class="signal-type st-escalation">&#x26A1;</span> escalation</span>
-                <span class="key-item"><span class="signal-type st-partnership">&#x2194;</span> partnership</span>
+                <span class="key-item"><span class="signal-type st-execution" aria-hidden="true">&#x25C8;</span> execution</span>
+                <span class="key-item"><span class="signal-type st-escalation" aria-hidden="true">&#x26A1;</span> escalation</span>
+                <span class="key-item"><span class="signal-type st-partnership" aria-hidden="true">&#x2194;</span> partnership</span>
                 <span class="key-sep">|</span>
                 <span class="key-item">weakest score (hover for all 4: intent · confidence · accuracy · completeness)</span>
             </div>
@@ -170,7 +170,7 @@
         @if (wg.Desks.Count > 0)
         {
         <table>
-            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>output</th>@if (_advanced) { <th>AIC</th> }<th>status</th><th>last</th><th></th></tr></thead>
+            <thead><tr><th scope="col">desk</th><th scope="col">modality</th><th scope="col">model</th><th scope="col">output</th>@if (_advanced) { <th scope="col">AIC</th> }<th scope="col">status</th><th scope="col">last</th><th></th></tr></thead>
             <tbody>
                 @foreach (var d in wg.Desks)
                 {
@@ -200,7 +200,7 @@
                             }
                             else if (d.Sync == "synced")
                             {
-                                <span class="sync sync-ok" title="clean and synced with origin/main">&#10003;</span>
+                                <span class="sync sync-ok" title="clean and synced with origin/main" aria-label="synced">&#10003;</span>
                             }
                         </td>
                         <td class="muted">@Ago(d.LastSeen)</td>
@@ -231,7 +231,7 @@
                         <tr class="signal-row @alertLevel">
                             <td colspan="@(_advanced ? 8 : 7)">
                                 <div class="signal-strip" title="@SignalTooltip(sig)">
-                                    <span class="signal-type st-@sig.SignalType">@SignalIcon(sig.SignalType)</span>
+                                    <span class="signal-type st-@sig.SignalType" aria-label="@(sig.SignalType) signal">@SignalIcon(sig.SignalType)</span>
                                     @if (sig.SignalType == "escalation")
                                     {
                                         <span class="signal-escalation">&#9889; @Truncate(sig.EscalationReason ?? "needs help", 80)</span>
@@ -269,7 +269,7 @@
         {
             <div class="closed-section">
                 <div class="closed-head">
-                    <span class="dormant-label">&#9711; dormant</span>
+                    <span class="dormant-label"><span aria-hidden="true">&#9711;</span> dormant</span>
                     <span class="closed-count">@wg.Dormant.Count</span>
                 </div>
                 <div class="closed-strip">
@@ -292,7 +292,7 @@
         <h2>not in a workshop yet <span class="count">@orphans.Count desks</span></h2>
         <div class="no-workshop-hint muted">these Copilot sessions aren&rsquo;t part of a workshop &mdash; create one below to group and coordinate them</div>
         <table>
-            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>output</th>@if (_advanced) { <th>AIC</th> }<th>status</th><th>last</th><th></th></tr></thead>
+            <thead><tr><th scope="col">desk</th><th scope="col">modality</th><th scope="col">model</th><th scope="col">output</th>@if (_advanced) { <th scope="col">AIC</th> }<th scope="col">status</th><th scope="col">last</th><th></th></tr></thead>
             <tbody>
                 @foreach (var d in orphans)
                 {
@@ -336,7 +336,7 @@
     <section class="panel">
         <div class="closed-section">
             <div class="closed-head">
-                <span class="closed-label">&#9724; closed desks</span>
+                <span class="closed-label"><span aria-hidden="true">&#9724;</span> closed desks</span>
                 <span class="closed-count">@_closed.Count</span>
             </div>
             <div class="closed-strip">
@@ -354,7 +354,7 @@
     <section class="panel">
         <div class="closed-section">
             <div class="closed-head">
-                <span class="archived-label">&#128230; archived workshops</span>
+                <span class="archived-label"><span aria-hidden="true">&#128230;</span> archived workshops</span>
                 <span class="closed-count">@_archivedWorkshops.Count</span>
             </div>
             <div class="closed-strip">
