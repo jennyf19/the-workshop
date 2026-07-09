@@ -11,6 +11,31 @@ public record WorkshopResult(bool Ok, string Message, string? Dir);
 // owner we briefly make it the active gh account, then always restore.
 public static class WorkshopLauncher
 {
+    // Creates a mini-workshop: a local folder with a workshop.md brief and a
+    // desks/ folder. No GitHub repo, no git — the lightest on-ramp. Point an
+    // agent at the folder to organize local work; it can graduate to a full
+    // (repo-backed) workshop later.
+    public static WorkshopResult NewMiniWorkshop(string name, string baseDir)
+    {
+        name = (name ?? "").Trim();
+        if (name.Length == 0) return new(false, "name the mini-workshop", null);
+        if (name.Any(char.IsWhiteSpace)) return new(false, "the name can't contain spaces", null);
+        if (string.IsNullOrWhiteSpace(baseDir)) return new(false, "no base directory configured", null);
+
+        var dir = Path.Combine(baseDir, name);
+        if (Directory.Exists(dir) && Directory.EnumerateFileSystemEntries(dir).Any())
+            return new(false, $"{dir} already exists and isn't empty", null);
+
+        try
+        {
+            Directory.CreateDirectory(dir);
+            Directory.CreateDirectory(Path.Combine(dir, "desks"));
+            File.WriteAllText(Path.Combine(dir, "workshop.md"), MiniWorkshopBrief(name));
+            return new(true, $"created mini-workshop \u201c{name}\u201d (local, no repo)", dir);
+        }
+        catch (Exception ex) { return new(false, $"couldn't create mini-workshop: {ex.Message}", dir); }
+    }
+
     public static WorkshopResult NewWorkshop(string owner, string name, string baseDir, string? activeAccount)
     {
         owner = (owner ?? "").Trim();
@@ -104,20 +129,36 @@ public static class WorkshopLauncher
         return (null, null);
     }
 
-    public record WorkshopInfo(string Name, string Dir);
+    public record WorkshopInfo(string Name, string Dir, bool IsMini = false);
 
     // A folder counts as a workshop if it's a git repo that also looks like one:
     // it has the scaffold marker (hands-up.md), or a classroom/ or desks/ folder.
     // That catches both room-created workshops and existing ones like
     // Ember_workshop, while skipping the product repo and unrelated clones.
+    // A mini-workshop is the lightweight case: a local (non-git) folder marked
+    // by workshop.md — the "no repo" on-ramp.
     internal static bool IsWorkshop(string dir)
     {
         try
         {
+            // Mini-workshop: a local folder marked by workshop.md — no git needed.
+            if (File.Exists(Path.Combine(dir, "workshop.md"))) return true;
             if (!Directory.Exists(Path.Combine(dir, ".git"))) return false;
             return File.Exists(Path.Combine(dir, "hands-up.md"))
                 || Directory.Exists(Path.Combine(dir, "classroom"))
                 || Directory.Exists(Path.Combine(dir, "desks"));
+        }
+        catch { return false; }
+    }
+
+    // A mini-workshop is a local folder marked by workshop.md that is NOT a git
+    // repo. Once it graduates (git init + push), it's a full workshop.
+    internal static bool IsMiniWorkshop(string dir)
+    {
+        try
+        {
+            return File.Exists(Path.Combine(dir, "workshop.md"))
+                && !Directory.Exists(Path.Combine(dir, ".git"));
         }
         catch { return false; }
     }
@@ -134,7 +175,7 @@ public static class WorkshopLauncher
         catch { return found; }
         foreach (var d in dirs)
             if (IsWorkshop(d))
-                found.Add(new WorkshopInfo(Path.GetFileName(d.TrimEnd('\\', '/')), d));
+                found.Add(new WorkshopInfo(Path.GetFileName(d.TrimEnd('\\', '/')), d, IsMiniWorkshop(d)));
         return found.OrderBy(w => w.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
@@ -303,6 +344,35 @@ a workshop — a room of long-running AI agents (desks) sharing one bench.
 - `hands-up.md` — decisions the room surfaces to the operator
 - `protocol.md` — how desks take turns and disagree
 - `CAIRN.md` — the operating disposition each desk reads first
+";
+
+    // The mini-workshop brief: the one file you point an agent at. It's the
+    // whole thing — a local workspace, no repo, no git. Same desks/ shape as a
+    // full workshop so it can graduate later.
+    private static string MiniWorkshopBrief(string name) =>
+$@"# {name} — a mini-workshop
+
+this is a **mini-workshop**: a lightweight, local workspace for getting real work
+organized with an AI agent. no GitHub repo, no git — just this folder. point an
+agent at it and go.
+
+## for the agent working here
+- treat this folder as the workspace. organize files, draft docs, and keep the
+  work tidy right here.
+- when you finish a piece of work, leave a short note — in this file or a dated
+  file under `desks/` — so the next session picks up where you left off.
+- ask before anything destructive. leave it better marked than you found it.
+
+## desks
+each session that works here is a ""desk"". the workshop dashboard shows open
+desks, the model each is on, output tokens, and how confident it is.
+
+## graduating to a full workshop
+when this gets serious — you want history, review, and a shared home — graduate
+it to a full workshop (a private GitHub repo) from the dashboard. the work here
+comes along; nothing is lost.
+
+_created by the workshop. delete this file and it's just a folder again._
 ";
 
     private const string Cairn =

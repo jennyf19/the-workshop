@@ -137,6 +137,11 @@ h1 { font-size: 1.5rem; margin: 0; }
 .workshop-card h2 { font-size: 0.95rem; letter-spacing: 0.3px; }
 .no-workshop { border-left-color: var(--muted); }
 .no-workshop-hint { font-size: 0.78rem; margin: -0.2rem 0 0.5rem; }
+.mini-badge { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.4px; padding: 0.1rem 0.4rem; border-radius: 8px; background: rgba(52,211,153,0.15); color: var(--good); font-weight: 600; vertical-align: middle; }
+.mini-tag { font-size: 0.6rem; text-transform: uppercase; color: var(--good); opacity: 0.85; }
+.step.sub { margin-top: -0.3rem; padding-left: 1.7rem; opacity: 0.92; }
+.btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
+.btn.ghost:hover { border-color: var(--good); color: var(--good); }
 
 /* signal strip — agent self-report row under each desk */
 .signal-row td { padding: 0.15rem 0.5rem 0.4rem 0; border-bottom: 1px solid rgba(42,45,53,0.3); }
