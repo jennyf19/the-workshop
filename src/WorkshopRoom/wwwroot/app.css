@@ -10,9 +10,9 @@
     --warn: #fbbf24;
     --bad: #f87171;
     /* form surfaces — kept distinct from --bg so inputs are visible */
-    --input-bg: #20242e;
-    --input-border: #3d434f;
-    --placeholder: #9ca1ab;
+    --input-bg: #2a3040;
+    --input-border: #5b6474;
+    --placeholder: #aab0bc;
     --on-accent: #0b0d11;
 }
 
