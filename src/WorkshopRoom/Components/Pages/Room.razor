@@ -65,6 +65,25 @@
     </span>
 </div>
 
+@if (_opsAlerts.Count > 0 || _staleDesks.Count > 0)
+{
+    <div class="ops-strip">
+        <span class="ops-title">ops</span>
+        @if (_staleDesks.Count > 0)
+        {
+            <span class="ops-pill stale" title="@string.Join(", ", _staleDesks)">@_staleDesks.Count stale</span>
+        }
+        @foreach (var alert in _opsAlerts.Take(3))
+        {
+            <span class="ops-alert @alert.Level" title="@alert.Detail">@alert.Desk: @alert.Summary</span>
+        }
+        @if (_opsAlerts.Count > 3)
+        {
+            <span class="ops-more">+@(_opsAlerts.Count - 3) more</span>
+        }
+    </div>
+}
+
 <div class="toolbar">
     <span class="muted">first set up a workshop (a repo), then open desks in it &middot; live from session-state, refreshes every 3s</span>
 </div>
@@ -102,9 +121,11 @@
 
 <div class="grid">
 
-    <section class="panel">
-        <h2>desks <span class="count">@_desks.Count</span></h2>
-        @if (_signals.Count > 0)
+    @foreach (var wg in _workshopGroups)
+    {
+    <section class="panel workshop-card">
+        <h2>@wg.Name <span class="count">@wg.Desks.Count desks</span></h2>
+        @if (_signals.Count > 0 && wg == _workshopGroups.First())
         {
             <div class="signal-key">
                 <span class="key-title">signals:</span>
@@ -112,13 +133,15 @@
                 <span class="key-item"><span class="signal-type st-escalation">&#x26A1;</span> escalation</span>
                 <span class="key-item"><span class="signal-type st-partnership">&#x2194;</span> partnership</span>
                 <span class="key-sep">|</span>
-                <span class="key-item">shows weakest score (hover for all 4: intent · confidence · accuracy · completeness)</span>
+                <span class="key-item">weakest score (hover for all 4: intent · confidence · accuracy · completeness)</span>
             </div>
         }
+        @if (wg.Desks.Count > 0)
+        {
         <table>
             <thead><tr><th>desk</th><th>modality</th><th>model</th><th>tokens</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
             <tbody>
-                @foreach (var d in _desks)
+                @foreach (var d in wg.Desks)
                 {
                     var sig = SignalReader.LatestForDesk(_signals, d.Name);
                     <tr>
@@ -207,30 +230,16 @@
                 }
             </tbody>
         </table>
-        @if (_closed.Count > 0)
-        {
-            <div class="closed-section">
-                <div class="closed-head">
-                    <span class="closed-label">&#9724; closed desks</span>
-                    <span class="closed-count">@_closed.Count</span>
-                </div>
-                <div class="closed-strip">
-                    @foreach (var c in _closed)
-                    {
-                        <span class="closed-chip">@c.Name <button class="link-btn" @onclick="() => ReopenDesk(c.SessionId)" title="bring this desk back to the board">reopen</button></span>
-                    }
-                </div>
-            </div>
         }
-        @if (_dormant.Count > 0)
+        @if (wg.Dormant.Count > 0)
         {
             <div class="closed-section">
                 <div class="closed-head">
-                    <span class="dormant-label">&#9711; dormant desks</span>
-                    <span class="closed-count">@_dormant.Count</span>
+                    <span class="dormant-label">&#9711; dormant</span>
+                    <span class="closed-count">@wg.Dormant.Count</span>
                 </div>
                 <div class="closed-strip">
-                    @foreach (var d in _dormant)
+                    @foreach (var d in wg.Dormant)
                     {
                         <span class="dormant-chip" title="@d.Path (@d.Location/)">@d.Name <button class="link-btn" @onclick="() => StartDormantDesk(d)">start</button></span>
                     }
@@ -238,6 +247,62 @@
             </div>
         }
     </section>
+    }
+
+    @* Desks not belonging to any detected workshop (orphans) *@
+    @{ var grouped = _workshopGroups.SelectMany(g => g.Desks).Select(d => d.SessionId).ToHashSet(); }
+    @{ var orphans = _desks.Where(d => !grouped.Contains(d.SessionId)).ToList(); }
+    @if (orphans.Count > 0)
+    {
+    <section class="panel workshop-card">
+        <h2>unaffiliated <span class="count">@orphans.Count desks</span></h2>
+        <table>
+            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>tokens</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var d in orphans)
+                {
+                    <tr>
+                        <td><strong>@d.Name</strong><div class="sub">@d.Note</div></td>
+                        <td><span class="mod mod-@d.Modality">@d.Modality</span></td>
+                        <td class="mono">@d.Model</td>
+                        <td class="mono tok" title="@($"{d.TokensIn:N0} in / {d.TokensOut:N0} out")">@FmtTok(d.TokensIn + d.TokensOut)</td>
+                        <td class="mono aic">@d.Aic.ToString("N0")</td>
+                        <td><span class="badge st-@d.Status.Replace("-", "")">@d.Status</span></td>
+                        <td class="muted">@Ago(d.LastSeen)</td>
+                        <td>
+                            @if (d.ConsolePid > 0)
+                            {
+                                <span class="in-console">&#9679; in console</span>
+                            }
+                            else if (!string.IsNullOrEmpty(d.SessionId))
+                            {
+                                <button class="link-btn" @onclick="() => OpenConsole(d)">&#8599; console</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+    }
+
+    @if (_closed.Count > 0)
+    {
+    <section class="panel">
+        <div class="closed-section">
+            <div class="closed-head">
+                <span class="closed-label">&#9724; closed desks</span>
+                <span class="closed-count">@_closed.Count</span>
+            </div>
+            <div class="closed-strip">
+                @foreach (var c in _closed)
+                {
+                    <span class="closed-chip">@c.Name <button class="link-btn" @onclick="() => ReopenDesk(c.SessionId)" title="bring this desk back to the board">reopen</button></span>
+                }
+            </div>
+        </div>
+    </section>
+    }
 
     <section class="panel">
         <h2>bench <span class="count">@_artifact.Ref</span></h2>
@@ -314,6 +379,9 @@
     private List<ClosedDesk> _closed = new();
     private List<WorkshopLauncher.DeskFolder> _dormant = new();
     private List<AgentSignal> _signals = new();
+    private List<OpsAlert> _opsAlerts = new();
+    private List<string> _staleDesks = new();
+    private List<WorkshopGroup> _workshopGroups = new();
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
     private string _setupMessage = "";
@@ -354,8 +422,41 @@
             .Where(df => !activeNames.Contains(df.Name))
             .ToList();
 
+        // Group desks by workshop — match desk Cwd to workshop Dir
+        _workshopGroups = _workshops.Select(w =>
+        {
+            var wDesks = _desks.Where(d =>
+                !string.IsNullOrEmpty(d.Cwd) &&
+                d.Cwd.StartsWith(w.Dir, StringComparison.OrdinalIgnoreCase)).ToList();
+            var wDormant = WorkshopLauncher.ListDeskFolders(w.Dir)
+                .Where(df => !activeNames.Contains(df.Name)).ToList();
+            return new WorkshopGroup(w.Name, w.Dir, wDesks, wDormant);
+        }).Where(g => g.Desks.Count > 0 || g.Dormant.Count > 0).ToList();
+
         // Signals = latest agent signal per desk (from .signals/ folders)
         _signals = SignalReader.ReadLatestSignals(_workshops.Select(w => w.Dir));
+
+        // Ops layer: detect stale desks + surface actionable alerts from signals
+        var staleThreshold = TimeSpan.FromHours(4);
+        _staleDesks = _desks
+            .Where(d => (DateTime.UtcNow - d.LastSeen) > staleThreshold && d.ConsolePid == 0)
+            .Select(d => d.Name)
+            .ToList();
+
+        _opsAlerts = new();
+        foreach (var sig in _signals)
+        {
+            if (sig.SignalType == "escalation")
+                _opsAlerts.Add(new OpsAlert(sig.DeskName, "escalation", "⚡ " + (sig.EscalationReason ?? "needs help"), sig.EscalationBlocked ?? ""));
+            else if (sig.Intent > 0 && sig.Intent <= 2)
+                _opsAlerts.Add(new OpsAlert(sig.DeskName, "warn", $"intent {sig.Intent}/5 — may be off track", sig.WhatWasHard ?? ""));
+            else
+            {
+                var (label, score) = WeakestScore(sig);
+                if (score <= 2)
+                    _opsAlerts.Add(new OpsAlert(sig.DeskName, "warn", $"{label} {score}/5", sig.WhatWasHard ?? ""));
+            }
+        }
     }
 
     private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd);
@@ -533,6 +634,10 @@
 
     private static string Truncate(string s, int max) =>
         s.Length <= max ? s : s[..max] + "\u2026";
+
+    private record OpsAlert(string Desk, string Level, string Summary, string Detail);
+
+    private record WorkshopGroup(string Name, string Dir, List<Desk> Desks, List<WorkshopLauncher.DeskFolder> Dormant);
 
     public void Dispose() => _tick?.Dispose();
 }
