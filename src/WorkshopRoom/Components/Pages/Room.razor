@@ -10,6 +10,10 @@
     <h1>the workshop</h1>
     <span class="artifact">@if (!string.IsNullOrEmpty(_artifact.Ref)) { <text>on <strong>@_artifact.Ref</strong> &middot; </text> }@_artifact.Title</span>
     <span class="updated">updated @Ago(_now.AddSeconds(-1))</span>
+    <button class="view-toggle @(_advanced ? "on" : "")" @onclick="() => _advanced = !_advanced"
+            title="@(_advanced ? "showing everything \u2014 click for the simple view" : "keeping it simple \u2014 click to show everything")">
+        @(_advanced ? "showing everything" : "keep it simple")
+    </button>
 </div>
 
 <section class="pulse @PulseClass()">
@@ -39,30 +43,39 @@
         <span class="pill-k">hands-up</span>
         <span class="pill-v">@_health.HandsUpOpen open</span>
     </span>
+    @if (_advanced)
+    {
     <span class="pill @(_health.SendBacks > 0 ? "good" : "warn")">
         <span class="pill-k">send-back</span>
         <span class="pill-v">@_health.SendBacks / @_health.Reviews reviews</span>
         <span class="pill-note">@(_health.SendBacks > 0 ? "gate is live" : "gate not gating")</span>
     </span>
+    }
     <span class="pill">
         <span class="pill-k">shipped</span>
         <span class="pill-v">@_health.Shipped / @_health.Handoffs handoffs</span>
     </span>
+    @if (_advanced)
+    {
     <span class="pill">
         <span class="pill-k">confidence</span>
         <span class="pill-v">@Conf(_health.ConfMin)&ndash;@Conf(_health.ConfMax)</span>
         <span class="pill-note">spread @Spread()</span>
     </span>
+    }
     <span class="pill">
         <span class="pill-k">workshop spend</span>
         <span class="pill-v">@FmtTok(_desks.Sum(d => d.TokensIn + d.TokensOut))</span>
         <span class="pill-note">output tokens, live</span>
     </span>
+    @if (_advanced)
+    {
     <span class="pill">
         <span class="pill-k">workshop AIC</span>
         <span class="pill-v">@_desks.Sum(d => d.Aic).ToString("N0")</span>
         <span class="pill-note">credits, last sync</span>
     </span>
+    }
 </div>
 
 @if (_opsAlerts.Count > 0 || _staleDesks.Count > 0)
@@ -121,7 +134,68 @@
 
 <div class="grid">
 
-    @foreach (var wg in _workshopGroups)
+    @if (!_advanced)
+    {
+    <section class="panel">
+        <h2>desks <span class="count">@_desks.Count</span></h2>
+        @if (_desks.Count == 0)
+        {
+            <div class="empty">no desks open yet. create a workshop below, then open a desk in it.</div>
+        }
+        else
+        {
+        <table>
+            <thead><tr><th>desk</th><th>model</th><th>output</th><th>status</th><th>last</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var d in _desks)
+                {
+                    <tr>
+                        <td><strong>@d.Name</strong><div class="sub">@d.Note</div></td>
+                        <td class="mono">@d.Model</td>
+                        <td class="mono tok" title="@($"{d.TokensOut:N0} output tokens")">@FmtTok(d.TokensOut)</td>
+                        <td><span class="badge st-@d.Status.Replace("-", "")">@d.Status</span></td>
+                        <td class="muted">@Ago(d.LastSeen)</td>
+                        <td>
+                            @if (d.ConsolePid > 0)
+                            {
+                                <span class="in-console" title="@($"already open in console (pid {d.ConsolePid})")">&#9679; in console</span>
+                            }
+                            else if (!string.IsNullOrEmpty(d.SessionId))
+                            {
+                                <button class="link-btn" @onclick="() => OpenConsole(d)" title="open this desk's session in a new terminal">&#8599; console</button>
+                            }
+                            @if (!string.IsNullOrEmpty(d.SessionId))
+                            {
+                                <button class="link-btn danger" @onclick="() => CloseDesk(d)" disabled="@_closing.Contains(d.SessionId)"
+                                        title="@(d.ConsolePid > 0 ? "wind down: the agent journals, then this desk closes" : "close and hide this desk")">
+                                    @(_closing.Contains(d.SessionId) ? "closing..." : "close")
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        }
+        @if (_dormant.Count > 0)
+        {
+            <div class="closed-section">
+                <div class="closed-head">
+                    <span class="dormant-label">&#9711; dormant</span>
+                    <span class="closed-count">@_dormant.Count</span>
+                </div>
+                <div class="closed-strip">
+                    @foreach (var d in _dormant)
+                    {
+                        <span class="dormant-chip" title="@d.Path (@d.Location/)">@d.Name <button class="link-btn" @onclick="() => StartDormantDesk(d)">start</button></span>
+                    }
+                </div>
+            </div>
+        }
+    </section>
+    }
+
+    @foreach (var wg in (_advanced ? _workshopGroups : new List<WorkshopGroup>()))
     {
     <section class="panel workshop-card">
         <h2>@wg.Name <span class="count">@wg.Desks.Count desks</span></h2>
@@ -249,10 +323,10 @@
     </section>
     }
 
-    @* Desks not belonging to any detected workshop (orphans) *@
+    @* Desks not belonging to any detected workshop (orphans) — advanced view only *@
     @{ var grouped = _workshopGroups.SelectMany(g => g.Desks).Select(d => d.SessionId).ToHashSet(); }
     @{ var orphans = _desks.Where(d => !grouped.Contains(d.SessionId)).ToList(); }
-    @if (orphans.Count > 0)
+    @if (_advanced && orphans.Count > 0)
     {
     <section class="panel workshop-card">
         <h2>unaffiliated <span class="count">@orphans.Count desks</span></h2>
@@ -304,6 +378,8 @@
     </section>
     }
 
+    @if (_advanced)
+    {
     <section class="panel">
         <h2>bench <span class="count">@_artifact.Ref</span></h2>
         <ol class="bench">
@@ -322,6 +398,7 @@
             }
         </ol>
     </section>
+    }
 
     <section class="panel">
         <h2>hands-up <span class="count">@_handsup.Count(h => h.Status == "open")</span></h2>
@@ -338,6 +415,8 @@
         }
     </section>
 
+    @if (_advanced)
+    {
     <section class="panel">
         <h2>handoffs <span class="count">@_handoffs.Count</span></h2>
         @foreach (var h in _handoffs)
@@ -354,6 +433,7 @@
             </div>
         }
     </section>
+    }
 
 </div>
 
@@ -382,6 +462,7 @@
     private List<OpsAlert> _opsAlerts = new();
     private List<string> _staleDesks = new();
     private List<WorkshopGroup> _workshopGroups = new();
+    private bool _advanced;   // false = "keep it simple" default; true = "show me everything"
     private string _newWorkshopName = "";
     private string _workshopOwner = "";
     private string _setupMessage = "";
