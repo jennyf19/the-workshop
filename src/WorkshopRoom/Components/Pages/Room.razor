@@ -146,7 +146,12 @@
     @foreach (var wg in _workshopGroups)
     {
     <section class="panel workshop-card">
-        <h2>@wg.Name @if (wg.IsMini) { <span class="mini-badge" title="a local mini-workshop \u2014 no repo">mini &middot; local</span> } <span class="count">@wg.Desks.Count desks</span></h2>
+        <h2>@wg.Name @if (wg.IsMini) { <span class="mini-badge" title="a local mini-workshop \u2014 no repo">mini &middot; local</span> } <span class="count">@wg.Desks.Count desks</span>
+            @if (wg.IsMini)
+            {
+                <button class="link-btn graduate" @onclick="() => GraduateWorkshop(wg.Dir)" disabled="@_busy" title="create a private repo and make this a full workshop; your work comes along">graduate to full &rarr;</button>
+            }
+        </h2>
         @if (_signals.Count > 0 && wg == _workshopGroups.First())
         {
             <div class="signal-key">
@@ -618,6 +623,19 @@
             _newMiniName = "";
             if (result.Dir is not null) _deskFolder = result.Dir;   // prefill step 2 with the new mini-workshop
         }
+        StateHasChanged();
+    }
+
+    private async Task GraduateWorkshop(string dir)
+    {
+        if (string.IsNullOrWhiteSpace(_workshopOwner)) { _setupMessage = "pick an owner account (in step 1) to graduate into"; _setupDir = null; StateHasChanged(); return; }
+        _busy = true; _setupMessage = $"graduating {System.IO.Path.GetFileName(dir)} — creating the private repo..."; _setupDir = null; StateHasChanged();
+        var active = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login;
+        var result = await Task.Run(() => WorkshopLauncher.GraduateWorkshop(dir, _workshopOwner, active));
+        _busy = false;
+        _setupMessage = result.Message;
+        _setupDir = result.Ok ? result.Dir : null;
+        Load();   // refresh: the card drops its 'mini' badge once it's a full workshop
         StateHasChanged();
     }
 

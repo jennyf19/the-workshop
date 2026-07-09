@@ -77,6 +77,47 @@ public static class WorkshopLauncher
         }
     }
 
+    // Graduates a mini-workshop (local, no repo) into a full workshop: scaffolds
+    // the pieces it's missing (without clobbering its workshop.md or desks), then
+    // creates the private GitHub repo and pushes. The folder keeps its name and
+    // all its work; afterwards it's a normal repo-backed workshop.
+    public static WorkshopResult GraduateWorkshop(string dir, string owner, string? activeAccount)
+    {
+        dir = (dir ?? "").Trim();
+        owner = (owner ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir)) return new(false, "no such folder", null);
+        if (!IsMiniWorkshop(dir)) return new(false, "that isn't a mini-workshop (it already has a repo, or has no workshop.md)", null);
+        if (owner.Length == 0) return new(false, "pick an owner account to graduate into", null);
+
+        var name = Path.GetFileName(dir.TrimEnd('\\', '/'));
+
+        var switched = !string.Equals(owner, activeAccount, StringComparison.OrdinalIgnoreCase);
+        try
+        {
+            if (switched)
+            {
+                var (okSwitch, switchOut) = GhAuth.Run($"auth switch -u {owner}");
+                if (!okSwitch) return new(false, $"couldn't switch gh to {owner}: {Tail(switchOut)}", null);
+            }
+
+            var (okCreate, createOut) = GhAuth.Run($"repo create {owner}/{name} --private");
+            if (!okCreate) return new(false, $"gh repo create failed: {Tail(createOut)}", null);
+
+            try { ScaffoldMissing(dir, name); }
+            catch (Exception ex) { return new(false, $"scaffold failed: {ex.Message}", dir); }
+
+            var (okGit, gitOut) = InitAndPush(dir, owner, name);
+            if (!okGit) return new(false, $"git init/push failed: {Tail(gitOut)}", dir);
+
+            return new(true, $"graduated \u201c{name}\u201d to a full workshop ({owner}/{name}, private)", dir);
+        }
+        finally
+        {
+            if (switched && !string.IsNullOrWhiteSpace(activeAccount))
+                GhAuth.Run($"auth switch -u {activeAccount}");
+        }
+    }
+
     // Clones an existing private repo the operator already has into the base dir
     // and returns its folder, so the caller can open a desk in it. Acts as the
     // repo's owner if that's one of the signed-in accounts (for private access),
@@ -284,6 +325,20 @@ prompted perfectly. get going.
         File.WriteAllText(Path.Combine(dir, "protocol.md"), Protocol);
         File.WriteAllText(Path.Combine(dir, "bench", ".gitkeep"), "");
         File.WriteAllText(Path.Combine(dir, "desks", ".gitkeep"), "");
+    }
+
+    // Like Scaffold, but only writes what's absent — used when graduating a
+    // mini-workshop so its existing workshop.md, desks, and any work are kept.
+    private static void ScaffoldMissing(string dir, string name)
+    {
+        Directory.CreateDirectory(Path.Combine(dir, "bench"));
+        Directory.CreateDirectory(Path.Combine(dir, "desks"));
+        WriteIfMissing(Path.Combine(dir, "README.md"), Readme(name));
+        WriteIfMissing(Path.Combine(dir, "CAIRN.md"), Cairn);
+        WriteIfMissing(Path.Combine(dir, "hands-up.md"), HandsUp);
+        WriteIfMissing(Path.Combine(dir, "protocol.md"), Protocol);
+        WriteIfMissing(Path.Combine(dir, "bench", ".gitkeep"), "");
+        WriteIfMissing(Path.Combine(dir, "desks", ".gitkeep"), "");
     }
 
     private static (bool ok, string output) InitAndPush(string dir, string owner, string name)
