@@ -116,10 +116,11 @@ h1 { font-size: 1.5rem; margin: 0; }
 .sync-ok { color: var(--good); }
 .muted { color: var(--muted); }
 
-/* view toggle — simple (default) vs everything */
-.view-toggle { padding: 0.3rem 0.7rem; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
-.view-toggle:hover { color: var(--fg); border-color: var(--accent); }
-.view-toggle.on { background: rgba(93,164,255,0.14); color: var(--accent); border-color: var(--accent); }
+/* view switch — segmented simple | everything */
+.view-switch { margin-left: auto; display: inline-flex; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.view-switch .seg { padding: 0.3rem 0.8rem; border: 0; background: var(--card); color: var(--muted); font-size: 0.75rem; cursor: pointer; }
+.view-switch .seg:hover { color: var(--fg); }
+.view-switch .seg.on { background: rgba(93,164,255,0.16); color: var(--accent); font-weight: 600; }
 
 /* ops strip — coordination layer summary */
 .ops-strip { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.7rem; margin-bottom: 0.5rem; background: rgba(42,45,53,0.4); border-radius: 4px; border-left: 3px solid var(--accent); font-size: 0.78rem; }
@@ -134,6 +135,8 @@ h1 { font-size: 1.5rem; margin: 0; }
 /* workshop cards — grouped desk panels */
 .workshop-card { border-left: 3px solid var(--accent); }
 .workshop-card h2 { font-size: 0.95rem; letter-spacing: 0.3px; }
+.no-workshop { border-left-color: var(--muted); }
+.no-workshop-hint { font-size: 0.78rem; margin: -0.2rem 0 0.5rem; }
 
 /* signal strip — agent self-report row under each desk */
 .signal-row td { padding: 0.15rem 0.5rem 0.4rem 0; border-bottom: 1px solid rgba(42,45,53,0.3); }

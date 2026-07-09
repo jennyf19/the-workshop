@@ -10,10 +10,10 @@
     <h1>the workshop</h1>
     <span class="artifact">@if (!string.IsNullOrEmpty(_artifact.Ref)) { <text>on <strong>@_artifact.Ref</strong> &middot; </text> }@_artifact.Title</span>
     <span class="updated">updated @Ago(_now.AddSeconds(-1))</span>
-    <button class="view-toggle @(_advanced ? "on" : "")" @onclick="() => _advanced = !_advanced"
-            title="@(_advanced ? "showing everything \u2014 click for the simple view" : "keeping it simple \u2014 click to show everything")">
-        @(_advanced ? "showing everything" : "keep it simple")
-    </button>
+    <div class="view-switch" role="group" aria-label="view detail">
+        <button class="seg @(_advanced ? "" : "on")" @onclick="() => _advanced = false" title="just your desks, grouped by workshop, with tokens and signals">simple</button>
+        <button class="seg @(_advanced ? "on" : "")" @onclick="() => _advanced = true" title="everything: pulse, metrics, AIC, bench and handoffs">everything</button>
+    </div>
 </div>
 
 @if (_advanced)
@@ -131,51 +131,7 @@
 
 <div class="grid">
 
-    @if (!_advanced)
-    {
-    <section class="panel">
-        <h2>desks <span class="count">@_desks.Count</span></h2>
-        @if (_desks.Count == 0)
-        {
-            <div class="empty">no desks open yet. create a workshop below, then open a desk in it.</div>
-        }
-        else
-        {
-        <table>
-            <thead><tr><th>desk</th><th>status</th><th>last</th><th></th></tr></thead>
-            <tbody>
-                @foreach (var d in _desks)
-                {
-                    <tr>
-                        <td><strong>@d.Name</strong><div class="sub">@d.Note</div></td>
-                        <td><span class="badge st-@d.Status.Replace("-", "")">@d.Status</span></td>
-                        <td class="muted">@Ago(d.LastSeen)</td>
-                        <td>
-                            @if (d.ConsolePid > 0)
-                            {
-                                <span class="in-console" title="@($"already open in console (pid {d.ConsolePid})")">&#9679; in console</span>
-                            }
-                            else if (!string.IsNullOrEmpty(d.SessionId))
-                            {
-                                <button class="link-btn" @onclick="() => OpenConsole(d)" title="open this desk's session in a new terminal">&#8599; console</button>
-                            }
-                            @if (!string.IsNullOrEmpty(d.SessionId))
-                            {
-                                <button class="link-btn danger" @onclick="() => CloseDesk(d)" disabled="@_closing.Contains(d.SessionId)"
-                                        title="@(d.ConsolePid > 0 ? "wind down: the agent journals, then this desk closes" : "close and hide this desk")">
-                                    @(_closing.Contains(d.SessionId) ? "closing..." : "close")
-                                </button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        }
-    </section>
-    }
-
-    @foreach (var wg in (_advanced ? _workshopGroups : new List<WorkshopGroup>()))
+    @foreach (var wg in _workshopGroups)
     {
     <section class="panel workshop-card">
         <h2>@wg.Name <span class="count">@wg.Desks.Count desks</span></h2>
@@ -193,7 +149,7 @@
         @if (wg.Desks.Count > 0)
         {
         <table>
-            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>output</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
+            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>output</th>@if (_advanced) { <th>AIC</th> }<th>status</th><th>last</th><th></th></tr></thead>
             <tbody>
                 @foreach (var d in wg.Desks)
                 {
@@ -203,7 +159,10 @@
                         <td><span class="mod mod-@d.Modality">@d.Modality</span></td>
                         <td class="mono">@d.Model</td>
                         <td class="mono tok" title="@($"{d.TokensOut:N0} output tokens (local; input not tracked per-turn)")">@FmtTok(d.TokensOut)</td>
-                        <td class="mono aic" title="cloud usage_cost; live CLI runs ahead of last sync">@d.Aic.ToString("N0")</td>
+                        @if (_advanced)
+                        {
+                            <td class="mono aic" title="cloud usage_cost; live CLI runs ahead of last sync">@d.Aic.ToString("N0")</td>
+                        }
                         <td>
                             <span class="badge st-@d.Status.Replace("-", "")">@d.Status</span>
                             @if (d.Sync == "wip")
@@ -249,7 +208,7 @@
                             : weakScore <= 2 ? "alert-warn"
                             : "";
                         <tr class="signal-row @alertLevel">
-                            <td colspan="8">
+                            <td colspan="@(_advanced ? 8 : 7)">
                                 <div class="signal-strip" title="@SignalTooltip(sig)">
                                     <span class="signal-type st-@sig.SignalType">@SignalIcon(sig.SignalType)</span>
                                     @if (sig.SignalType == "escalation")
@@ -303,15 +262,16 @@
     </section>
     }
 
-    @* Desks not belonging to any detected workshop (orphans) — advanced view only *@
+    @* Sessions not part of any workshop — the "not in a workshop yet" group (JM issue #1) *@
     @{ var grouped = _workshopGroups.SelectMany(g => g.Desks).Select(d => d.SessionId).ToHashSet(); }
     @{ var orphans = _desks.Where(d => !grouped.Contains(d.SessionId)).ToList(); }
-    @if (_advanced && orphans.Count > 0)
+    @if (orphans.Count > 0)
     {
-    <section class="panel workshop-card">
-        <h2>unaffiliated <span class="count">@orphans.Count desks</span></h2>
+    <section class="panel workshop-card no-workshop">
+        <h2>not in a workshop yet <span class="count">@orphans.Count desks</span></h2>
+        <div class="no-workshop-hint muted">these Copilot sessions aren&rsquo;t part of a workshop &mdash; create one below to group and coordinate them</div>
         <table>
-            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>output</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
+            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>output</th>@if (_advanced) { <th>AIC</th> }<th>status</th><th>last</th><th></th></tr></thead>
             <tbody>
                 @foreach (var d in orphans)
                 {
@@ -320,7 +280,10 @@
                         <td><span class="mod mod-@d.Modality">@d.Modality</span></td>
                         <td class="mono">@d.Model</td>
                         <td class="mono tok" title="@($"{d.TokensOut:N0} output tokens (local; input not tracked per-turn)")">@FmtTok(d.TokensOut)</td>
-                        <td class="mono aic">@d.Aic.ToString("N0")</td>
+                        @if (_advanced)
+                        {
+                            <td class="mono aic">@d.Aic.ToString("N0")</td>
+                        }
                         <td><span class="badge st-@d.Status.Replace("-", "")">@d.Status</span></td>
                         <td class="muted">@Ago(d.LastSeen)</td>
                         <td>
@@ -337,6 +300,13 @@
                 }
             </tbody>
         </table>
+    </section>
+    }
+
+    @if (_workshopGroups.Count == 0 && _desks.Count == 0)
+    {
+    <section class="panel">
+        <div class="empty">no desks yet &mdash; create a workshop above, then open a desk in it. your open Copilot sessions will show up here.</div>
     </section>
     }
 
