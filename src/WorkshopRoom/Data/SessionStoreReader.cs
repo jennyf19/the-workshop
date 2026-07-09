@@ -79,8 +79,13 @@ public sealed class SessionStoreReader
                 try { ps = ParseSession(dir.FullName, ev); }
                 catch { continue; }
 
-                long tin = 0, tout = 0, aic = 0;
-                if (ps.CloudId is not null && usage.TryGetValue(ps.CloudId, out var u)) { tin = u.tin; tout = u.tout; aic = u.aic; }
+                // Tokens come from the local event stream (output tokens per
+                // assistant.message) — always available, no cloud sync needed.
+                // Input tokens aren't recorded locally per-turn, so we report
+                // output only. AIC (cost) is a cloud billing number; use the
+                // usage cache if a sync ever populated it, else 0.
+                long tin = 0, tout = ps.OutputTokens, aic = 0;
+                if (ps.CloudId is not null && usage.TryGetValue(ps.CloudId, out var u)) aic = u.aic;
 
                 var lastSeen = ev.LastWriteTimeUtc;
                 var mins = (DateTime.UtcNow - lastSeen).TotalMinutes;
@@ -157,6 +162,7 @@ public sealed class SessionStoreReader
 
         string? firstUser = null, lastUser = null, lastAssistant = null;
         string? pendingAskId = null, pendingAskQuestion = null;
+        long outTokens = 0;   // summed locally from assistant.message events (no cloud needed)
         foreach (var line in ReadLinesShared(ev.FullName))
         {
             if (line.Contains("\"user.message\""))
@@ -169,6 +175,7 @@ public sealed class SessionStoreReader
             {
                 var c = ExtractContent(line);
                 if (c is not null) lastAssistant = c;
+                outTokens += ExtractOutputTokens(line);
             }
             else if (line.Contains("\"tool.execution_start\"") && line.Contains("ask_user"))
             {
@@ -185,9 +192,25 @@ public sealed class SessionStoreReader
 
         var parsed = new ParsedSession(rawName, cloudId, model, cwd, userNamed, note, lastUser,
             lastAssistant is null ? null : StripReminder(lastAssistant),
-            pendingAskQuestion is null ? null : StripReminder(pendingAskQuestion));
+            pendingAskQuestion is null ? null : StripReminder(pendingAskQuestion), outTokens);
         _perSession[id] = (ev.LastWriteTimeUtc, parsed);
         return parsed;
+    }
+
+    // Sums output tokens straight from the local event stream. Each
+    // assistant.message carries data.outputTokens; no cloud sync required.
+    private static long ExtractOutputTokens(string line)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(line);
+            if (doc.RootElement.TryGetProperty("data", out var data) &&
+                data.TryGetProperty("outputTokens", out var ot) &&
+                ot.ValueKind == JsonValueKind.Number)
+                return ot.GetInt64();
+        }
+        catch { /* not a parseable event line */ }
+        return 0;
     }
 
     private static string? ExtractContent(string line)
@@ -467,5 +490,5 @@ public sealed class SessionStoreReader
 
     private static string Trunc(string s, int n) => s.Length > n ? s[..n] + " ..." : s;
 
-    private record ParsedSession(string RawName, string? CloudId, string Model, string Cwd, bool UserNamed, string Note, string? LastUser, string? LastAssistant, string? PendingAsk);
+    private record ParsedSession(string RawName, string? CloudId, string Model, string Cwd, bool UserNamed, string Note, string? LastUser, string? LastAssistant, string? PendingAsk, long OutputTokens);
 }

@@ -56,7 +56,7 @@
     <span class="pill">
         <span class="pill-k">workshop spend</span>
         <span class="pill-v">@FmtTok(_desks.Sum(d => d.TokensIn + d.TokensOut))</span>
-        <span class="pill-note">tokens, last sync</span>
+        <span class="pill-note">output tokens, live</span>
     </span>
     <span class="pill">
         <span class="pill-k">workshop AIC</span>
@@ -139,7 +139,7 @@
         @if (wg.Desks.Count > 0)
         {
         <table>
-            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>tokens</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
+            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>output</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
             <tbody>
                 @foreach (var d in wg.Desks)
                 {
@@ -148,7 +148,7 @@
                         <td><strong>@d.Name</strong><div class="sub">@d.Note</div></td>
                         <td><span class="mod mod-@d.Modality">@d.Modality</span></td>
                         <td class="mono">@d.Model</td>
-                        <td class="mono tok" title="@($"{d.TokensIn:N0} in / {d.TokensOut:N0} out")">@FmtTok(d.TokensIn + d.TokensOut)</td>
+                        <td class="mono tok" title="@($"{d.TokensOut:N0} output tokens (local; input not tracked per-turn)")">@FmtTok(d.TokensOut)</td>
                         <td class="mono aic" title="cloud usage_cost; live CLI runs ahead of last sync">@d.Aic.ToString("N0")</td>
                         <td>
                             <span class="badge st-@d.Status.Replace("-", "")">@d.Status</span>
@@ -257,7 +257,7 @@
     <section class="panel workshop-card">
         <h2>unaffiliated <span class="count">@orphans.Count desks</span></h2>
         <table>
-            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>tokens</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
+            <thead><tr><th>desk</th><th>modality</th><th>model</th><th>output</th><th>AIC</th><th>status</th><th>last</th><th></th></tr></thead>
             <tbody>
                 @foreach (var d in orphans)
                 {
@@ -265,7 +265,7 @@
                         <td><strong>@d.Name</strong><div class="sub">@d.Note</div></td>
                         <td><span class="mod mod-@d.Modality">@d.Modality</span></td>
                         <td class="mono">@d.Model</td>
-                        <td class="mono tok" title="@($"{d.TokensIn:N0} in / {d.TokensOut:N0} out")">@FmtTok(d.TokensIn + d.TokensOut)</td>
+                        <td class="mono tok" title="@($"{d.TokensOut:N0} output tokens (local; input not tracked per-turn)")">@FmtTok(d.TokensOut)</td>
                         <td class="mono aic">@d.Aic.ToString("N0")</td>
                         <td><span class="badge st-@d.Status.Replace("-", "")">@d.Status</span></td>
                         <td class="muted">@Ago(d.LastSeen)</td>
