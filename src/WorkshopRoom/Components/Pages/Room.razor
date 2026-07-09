@@ -3,6 +3,7 @@
 @implements IDisposable
 @inject SessionStoreReader Reader
 @inject RoomConfig Config
+@inject WorkshopArchive Archive
 
 <PageTitle>the workshop</PageTitle>
 
@@ -151,6 +152,7 @@
             {
                 <button class="link-btn graduate" @onclick="() => GraduateWorkshop(wg.Dir)" disabled="@_busy" title="create a private repo and make this a full workshop; your work comes along">graduate to full &rarr;</button>
             }
+            <button class="link-btn archive-btn" @onclick="() => ArchiveWorkshop(wg.Dir)" title="hide this workshop from the board \u2014 it stays whole on disk and can be restored">archive</button>
         </h2>
         @if (_signals.Count > 0 && wg == _workshopGroups.First())
         {
@@ -345,6 +347,24 @@
     </section>
     }
 
+    @if (_archivedWorkshops.Count > 0)
+    {
+    <section class="panel">
+        <div class="closed-section">
+            <div class="closed-head">
+                <span class="archived-label">&#128230; archived workshops</span>
+                <span class="closed-count">@_archivedWorkshops.Count</span>
+            </div>
+            <div class="closed-strip">
+                @foreach (var w in _archivedWorkshops)
+                {
+                    <span class="closed-chip">@w.Name@if (w.IsMini) { <span class="mini-tag"> mini</span> } <button class="link-btn" @onclick="() => RestoreWorkshop(w.Dir)" title="bring this workshop back to the board \u2014 whole, with all its work">restore</button></span>
+                }
+            </div>
+        </div>
+    </section>
+    }
+
     @if (_advanced)
     {
     <section class="panel">
@@ -428,6 +448,7 @@
     private string _deskHint = "";
     private readonly HashSet<string> _closing = new();
     private List<WorkshopLauncher.WorkshopInfo> _workshops = new();
+    private List<WorkshopLauncher.WorkshopInfo> _archivedWorkshops = new();
     private List<ClosedDesk> _closed = new();
     private List<WorkshopLauncher.DeskFolder> _dormant = new();
     private List<AgentSignal> _signals = new();
@@ -467,7 +488,10 @@
         _handsup = s.HandsUp; _handoffs = s.Handoffs; _health = s.Health; _pulse = s.Pulse;
         _usageAsOf = s.UsageAsOf;
         _now = DateTime.UtcNow;
-        _workshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
+        var allWorkshops = WorkshopLauncher.ListWorkshops(Config.WorkshopsBaseDir);
+        var archived = Archive.Archived();
+        _workshops = allWorkshops.Where(w => !archived.Contains(w.Dir)).ToList();
+        _archivedWorkshops = allWorkshops.Where(w => archived.Contains(w.Dir)).ToList();
         _closed = Reader.ClosedDesks();
 
         // Dormant = desk folders on disk that have no active session on the board.
@@ -636,6 +660,22 @@
         _setupMessage = result.Message;
         _setupDir = result.Ok ? result.Dir : null;
         Load();   // refresh: the card drops its 'mini' badge once it's a full workshop
+        StateHasChanged();
+    }
+
+    // Archive a workshop: hide it from the board. The folder — bench, desks, and
+    // all its work — stays whole on disk, so it restores intact.
+    private void ArchiveWorkshop(string dir)
+    {
+        Archive.Archive(dir);
+        Load();
+        StateHasChanged();
+    }
+
+    private void RestoreWorkshop(string dir)
+    {
+        Archive.Restore(dir);
+        Load();
         StateHasChanged();
     }
 

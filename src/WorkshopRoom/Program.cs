@@ -17,6 +17,9 @@ builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRo
 var workshopsDir = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath;
 builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { WorkshopsBaseDir = workshopsDir });
 
+var archivedPath = Path.Combine(builder.Environment.ContentRootPath, "archived-workshops.json");
+builder.Services.AddSingleton(new WorkshopRoom.Data.WorkshopArchive(archivedPath));
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
