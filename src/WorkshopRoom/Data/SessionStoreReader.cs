@@ -176,6 +176,8 @@ public sealed class SessionStoreReader
                 var c = ExtractContent(line);
                 if (c is not null) lastAssistant = c;
                 outTokens += ExtractOutputTokens(line);
+                var m = ExtractModel(line);
+                if (!string.IsNullOrEmpty(m)) model = m;   // keep the latest = current model
             }
             else if (line.Contains("\"tool.execution_start\"") && line.Contains("ask_user"))
             {
@@ -211,6 +213,22 @@ public sealed class SessionStoreReader
         }
         catch { /* not a parseable event line */ }
         return 0;
+    }
+
+    // The model that produced a turn is on data.model of each assistant.message.
+    // Taking the latest gives the desk's current model (after any model switch).
+    private static string? ExtractModel(string line)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(line);
+            if (doc.RootElement.TryGetProperty("data", out var data) &&
+                data.TryGetProperty("model", out var m) &&
+                m.ValueKind == JsonValueKind.String)
+                return m.GetString();
+        }
+        catch { /* not a parseable event line */ }
+        return null;
     }
 
     private static string? ExtractContent(string line)

@@ -28,7 +28,7 @@ public class OutputTokenTests
             "{\"type\":\"user.message\",\"data\":{\"content\":\"go\"}}",
         };
         foreach (var t in outputTokens)
-            lines.Add($"{{\"type\":\"assistant.message\",\"data\":{{\"content\":\"ok\",\"outputTokens\":{t}}}}}");
+            lines.Add($"{{\"type\":\"assistant.message\",\"data\":{{\"content\":\"ok\",\"model\":\"claude-test\",\"outputTokens\":{t}}}}}");
         File.WriteAllText(Path.Combine(sdir, "events.jsonl"), string.Join("\n", lines) + "\n");
     }
 
@@ -65,6 +65,32 @@ public class OutputTokenTests
 
             var desk = snap.Desks.Should().ContainSingle().Subject;
             desk.TokensOut.Should().Be(0);
+        }
+        finally { tmp.Delete(recursive: true); }
+    }
+
+    [Fact]
+    public void Desk_model_is_the_latest_assistant_message_model()
+    {
+        var tmp = Directory.CreateTempSubdirectory();
+        try
+        {
+            var root = Path.Combine(tmp.FullName, "session-state");
+            var sdir = Path.Combine(root, "cccccccc-model-switch");
+            Directory.CreateDirectory(sdir);
+            File.WriteAllText(Path.Combine(sdir, "workspace.yaml"), $"name: switcher\nuser_named: true\ncwd: {sdir}\n");
+            File.WriteAllLines(Path.Combine(sdir, "events.jsonl"), new[]
+            {
+                "{\"type\":\"user.message\",\"data\":{\"content\":\"go\"}}",
+                "{\"type\":\"assistant.message\",\"data\":{\"content\":\"a\",\"model\":\"claude-opus-4.6\",\"outputTokens\":10}}",
+                "{\"type\":\"session.model_change\",\"data\":{}}",
+                "{\"type\":\"assistant.message\",\"data\":{\"content\":\"b\",\"model\":\"gpt-5.3-codex\",\"outputTokens\":20}}",
+            });
+
+            var snap = MakeReader(root, tmp.FullName).GetSnapshot();
+
+            var desk = snap.Desks.Should().ContainSingle().Subject;
+            desk.Model.Should().Be("gpt-5.3-codex");   // latest wins
         }
         finally { tmp.Delete(recursive: true); }
     }
