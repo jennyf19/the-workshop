@@ -130,6 +130,12 @@
         }
         <input class="nd-input wide" @bind="_deskFolder" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder, e.g. Ember_workshop" autocomplete="off" spellcheck="false" />
         <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" autocomplete="off" spellcheck="false" />
+        @if (_agents.Count > 1)
+        {
+            <select class="nd-input" @bind="_deskAgent" title="which agent CLI to launch this desk with">
+                @foreach (var a in _agents) { <option value="@a.Key">@a.Label</option> }
+            </select>
+        }
         <button class="btn" @onclick="OpenDesk">open a desk</button>
         @if (!string.IsNullOrEmpty(_deskHint)) { <span class="nd-hint">@_deskHint</span> }
     </div>
@@ -412,6 +418,8 @@
     private string _usageAsOf = "";
     private string _deskFolder = "";
     private string _deskName = "";
+    private string _deskAgent = "copilot";
+    private List<AgentCli> _agents = new() { AgentClis.Copilot };
     private string _deskHint = "";
     private readonly HashSet<string> _closing = new();
     private List<WorkshopLauncher.WorkshopInfo> _workshops = new();
@@ -437,6 +445,7 @@
         Load();
         _ghLogins = GhAuth.DiscoverLogins().ToList();
         _workshopOwner = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login ?? _ghLogins.FirstOrDefault()?.Login ?? "";
+        _agents = AgentClis.Available();
         _tick = new Timer(_ => InvokeAsync(() =>
         {
             if (_typing) return;
@@ -533,7 +542,7 @@
         var orient = System.IO.File.Exists(System.IO.Path.Combine(df.Path, "START-HERE.md"))
             ? $"read ./{df.Location}/{df.Name}/START-HERE.md, then get going"
             : $"read ./{df.Location}/{df.Name}/README.md if it exists, orient yourself, then get going";
-        ConsoleLauncher.NewDesk(workshopDir, df.Name, orient);
+        ConsoleLauncher.NewDesk(workshopDir, df.Name, orient, _deskAgent);
     }
 
     private void Resolve(HandsUp h)
@@ -567,7 +576,7 @@
         if (name.Length == 0) name = "desk";
         WorkshopLauncher.PrepareDesk(dir, name);                 // give the desk its own space + journal + brief
         var orient = $"read ./desks/{name}/START-HERE.md, then get going";
-        ConsoleLauncher.NewDesk(dir, name, orient);              // open at the workshop root, auto-oriented
+        ConsoleLauncher.NewDesk(dir, name, orient, _deskAgent);  // open at the workshop root, auto-oriented
         _deskName = "";
     }
 

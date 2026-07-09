@@ -33,26 +33,39 @@ public static class ConsoleLauncher
     }
 
     // Starts a brand-new desk: ensures the folder exists, then opens a fresh
-    // Copilot CLI session there in a new terminal. When an orientation prompt is
-    // given it's passed via -i, so the desk auto-runs it and hits the ground
-    // running (e.g. "read your START-HERE and get going").
-    public static bool NewDesk(string dir, string name, string? orient = null)
+    // agent-CLI session there in a new terminal. Copilot supports --name and an
+    // orientation prompt (-i) so the desk auto-runs it; other agents (agency,
+    // claude) are launched bare in the folder. agentKey is resolved against the
+    // AgentClis whitelist, so an arbitrary command can never reach the shell.
+    public static bool NewDesk(string dir, string name, string? orient = null, string agentKey = "copilot")
     {
         if (string.IsNullOrWhiteSpace(dir)) return false;
         try { Directory.CreateDirectory(dir); } catch { return false; }
-        var nameArg = string.IsNullOrWhiteSpace(name) ? "" : $" --name \"{name}\"";
-        var orientArg = string.IsNullOrWhiteSpace(orient) ? "" : $" -i \"{orient}\"";
+
+        var agent = AgentClis.ByKey(agentKey);
+        string invoke;
+        if (string.Equals(agent.Key, AgentClis.Copilot.Key, StringComparison.OrdinalIgnoreCase))
+        {
+            var nameArg = string.IsNullOrWhiteSpace(name) ? "" : $" --name \"{name}\"";
+            var orientArg = string.IsNullOrWhiteSpace(orient) ? "" : $" -i \"{orient}\"";
+            invoke = $"{agent.Command}{nameArg}{orientArg}";
+        }
+        else
+        {
+            invoke = agent.Command;   // whitelisted command, launched in the desk folder
+        }
 
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{dir}\" copilot{nameArg}{orientArg}", UseShellExecute = true });
+            Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{dir}\" {invoke}", UseShellExecute = true });
             return true;
         }
         catch { /* fall through */ }
 
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = "pwsh.exe", Arguments = $"-NoExit -Command \"copilot{nameArg}{orientArg}\"", UseShellExecute = true, WorkingDirectory = dir });
+            var psi = new ProcessStartInfo { FileName = "pwsh.exe", Arguments = $"-NoExit -Command \"{invoke}\"", UseShellExecute = true, WorkingDirectory = dir };
+            Process.Start(psi);
             return true;
         }
         catch { return false; }
