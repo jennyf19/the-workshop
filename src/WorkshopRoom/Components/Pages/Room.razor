@@ -79,21 +79,21 @@
 </div>
 }
 
-@if (_opsAlerts.Count > 0 || _staleDesks.Count > 0)
+@if (_taAlerts.Count > 0 || _staleDesks.Count > 0)
 {
-    <div class="ops-strip">
-        <span class="ops-title">ops</span>
+    <div class="ta-strip">
+        <span class="ta-title" title="technical assistant">ta</span>
         @if (_staleDesks.Count > 0)
         {
-            <span class="ops-pill stale" title="@string.Join(", ", _staleDesks)">@_staleDesks.Count stale</span>
+            <span class="ta-pill stale" title="@string.Join(", ", _staleDesks)">@_staleDesks.Count stale</span>
         }
-        @foreach (var alert in _opsAlerts.Take(3))
+        @foreach (var alert in _taAlerts.Take(3))
         {
-            <span class="ops-alert @alert.Level" title="@alert.Detail">@alert.Desk: @alert.Summary</span>
+            <span class="ta-alert @alert.Level" title="@alert.Detail">@alert.Desk: @alert.Summary</span>
         }
-        @if (_opsAlerts.Count > 3)
+        @if (_taAlerts.Count > 3)
         {
-            <span class="ops-more">+@(_opsAlerts.Count - 3) more</span>
+            <span class="ta-more">+@(_taAlerts.Count - 3) more</span>
         }
     </div>
 }
@@ -455,7 +455,7 @@
     private List<ClosedDesk> _closed = new();
     private List<WorkshopLauncher.DeskFolder> _dormant = new();
     private List<AgentSignal> _signals = new();
-    private List<OpsAlert> _opsAlerts = new();
+    private List<TaAlert> _taAlerts = new();
     private List<string> _staleDesks = new();
     private List<WorkshopGroup> _workshopGroups = new();
     private bool _advanced;   // false = "keep it simple" default; true = "show me everything"
@@ -543,25 +543,25 @@
         // Signals = latest agent signal per desk (from .signals/ folders)
         _signals = SignalReader.ReadLatestSignals(_workshops.Select(w => w.Dir));
 
-        // Ops layer: detect stale desks + surface actionable alerts from signals
+        // TA layer: detect stale desks + surface actionable alerts from signals
         var staleThreshold = TimeSpan.FromHours(4);
         _staleDesks = _desks
             .Where(d => (DateTime.UtcNow - d.LastSeen) > staleThreshold && d.ConsolePid == 0)
             .Select(d => d.Name)
             .ToList();
 
-        _opsAlerts = new();
+        _taAlerts = new();
         foreach (var sig in _signals)
         {
             if (sig.SignalType == "escalation")
-                _opsAlerts.Add(new OpsAlert(sig.DeskName, "escalation", "⚡ " + (sig.EscalationReason ?? "needs help"), sig.EscalationBlocked ?? ""));
+                _taAlerts.Add(new TaAlert(sig.DeskName, "escalation", "⚡ " + (sig.EscalationReason ?? "needs help"), sig.EscalationBlocked ?? ""));
             else if (sig.Intent > 0 && sig.Intent <= 2)
-                _opsAlerts.Add(new OpsAlert(sig.DeskName, "warn", $"intent {sig.Intent}/5 — may be off track", sig.WhatWasHard ?? ""));
+                _taAlerts.Add(new TaAlert(sig.DeskName, "warn", $"intent {sig.Intent}/5 — may be off track", sig.WhatWasHard ?? ""));
             else
             {
                 var (label, score) = WeakestScore(sig);
                 if (score <= 2)
-                    _opsAlerts.Add(new OpsAlert(sig.DeskName, "warn", $"{label} {score}/5", sig.WhatWasHard ?? ""));
+                    _taAlerts.Add(new TaAlert(sig.DeskName, "warn", $"{label} {score}/5", sig.WhatWasHard ?? ""));
             }
         }
     }
@@ -788,7 +788,7 @@
     private static string Truncate(string s, int max) =>
         s.Length <= max ? s : s[..max] + "\u2026";
 
-    private record OpsAlert(string Desk, string Level, string Summary, string Detail);
+    private record TaAlert(string Desk, string Level, string Summary, string Detail);
 
     private record WorkshopGroup(string Name, string Dir, bool IsMini, List<Desk> Desks, List<WorkshopLauncher.DeskFolder> Dormant);
 
