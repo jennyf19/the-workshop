@@ -662,13 +662,14 @@
     // can still add a desk name before opening).
     private void PickWorkshop(string dir) { _deskFolder = dir; _deskHint = ""; }
 
-    // From an empty workshop card: reveal the setup with this workshop prefilled
-    // so the operator can name and open its first desk.
+    // From a workshop card: open a desk right here (default name, current agent),
+    // then refresh so the new desk shows on the card immediately.
     private void OpenDeskHere(string dir)
     {
         _deskFolder = dir;
-        _deskHint = "";
-        _setupOpen = true;
+        OpenDeskIn(dir, "");
+        Load();
+        StateHasChanged();
     }
 
     // Open a desk in a workshop folder that already exists. Bare names resolve
@@ -682,14 +683,20 @@
             ? input
             : System.IO.Path.Combine(Config.WorkshopsBaseDir, input);
         if (!System.IO.Directory.Exists(dir)) { _deskHint = $"no folder at {dir} — create a workshop first"; return; }
+        OpenDeskIn(dir, _deskName.Trim());
+        _deskName = "";
+    }
+
+    // Launch a desk in an existing workshop folder: scaffold its space, open the
+    // chosen agent CLI there, and remember which agent launched it.
+    private void OpenDeskIn(string dir, string name)
+    {
         _deskHint = "";
-        var name = _deskName.Trim();
-        if (name.Length == 0) name = "desk";
+        if (string.IsNullOrWhiteSpace(name)) name = "desk";
         WorkshopLauncher.PrepareDesk(dir, name);                 // give the desk its own space + journal + brief
         var orient = $"read ./desks/{name}/START-HERE.md, then get going";
         ConsoleLauncher.NewDesk(dir, name, orient, _deskAgent, Config.SettingsFor(_deskAgent));  // open at the workshop root, auto-oriented
         DeskAgents.RecordLaunch(dir, _deskAgent, name);          // remember which CLI launched it (issue #2)
-        _deskName = "";
     }
 
     private void ToggleSetup() => _setupOpen = !_setupOpen;
