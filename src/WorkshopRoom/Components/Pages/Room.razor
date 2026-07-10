@@ -7,10 +7,10 @@
 @inject DeskAgentStore DeskAgents
 @inject IJSRuntime JS
 
-<PageTitle>the workshop</PageTitle>
+<PageTitle>&#x1F6E0;&#xFE0F; the workshop</PageTitle>
 
 <div class="room-head">
-    <h1>the workshop</h1>
+    <h1><span class="mark" aria-hidden="true">&#x1F6E0;&#xFE0F;</span> the workshop</h1>
     <span class="artifact">@if (!string.IsNullOrEmpty(_artifact.Ref)) { <text>on <strong>@_artifact.Ref</strong> &middot; </text> }@_artifact.Title</span>
     <span class="updated">updated @Ago(_now.AddSeconds(-1))</span>
     <div class="view-switch" role="group" aria-label="view detail">

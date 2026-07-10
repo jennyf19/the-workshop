@@ -8,7 +8,9 @@ namespace WorkshopRoom.Tray;
 /// <summary>
 /// Builds the notification-area icon at runtime so the project ships no binary
 /// .ico asset. A rounded accent square (the dashboard's --accent, #5DA4FF) with
-/// a white "w", rendered at 32x32 (Windows down-samples for the 16px tray slot).
+/// the hammer-and-wrench workshop mark (U+1F6E0) in white, rendered at 32x32
+/// (Windows down-samples for the 16px tray slot). Same mark the browser shows
+/// in color.
 /// </summary>
 internal static class TrayIconFactory
 {
@@ -29,13 +31,15 @@ internal static class TrayIconFactory
             g.FillPath(bg, path);
 
             using var fg = new SolidBrush(Color.White);
-            using var font = new Font("Segoe UI", 15f, FontStyle.Bold, GraphicsUnit.Pixel);
+            using var font = new Font("Segoe UI Emoji", 18f, FontStyle.Regular, GraphicsUnit.Pixel);
             using var sf = new StringFormat
             {
                 Alignment = StringAlignment.Center,
                 LineAlignment = StringAlignment.Center,
             };
-            g.DrawString("w", font, fg, new RectangleF(0, -1, 32, 32), sf);
+            // Hammer-and-wrench (U+1F6E0). GDI+ renders it as a crisp white
+            // monochrome glyph on the accent square.
+            g.DrawString("\U0001F6E0", font, fg, new RectangleF(0, 0, 32, 32), sf);
         }
 
         var hicon = bmp.GetHicon();
