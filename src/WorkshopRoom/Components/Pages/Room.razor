@@ -152,7 +152,7 @@
             {
                 <button class="link-btn graduate" @onclick="() => GraduateWorkshop(wg.Dir)" disabled="@_busy" title="create a private repo and make this a full workshop; your work comes along">graduate to full &rarr;</button>
             }
-            <button class="link-btn archive-btn" @onclick="() => ArchiveWorkshop(wg.Dir)" title="hide this workshop from the board \u2014 it stays whole on disk and can be restored">archive</button>
+            <button class="link-btn archive-btn" @onclick="() => ArchiveWorkshop(wg.Dir)" title="hide this workshop from the board \u2014 it stays whole on disk and can be reopened from 'closed workshops' below">close</button>
         </h2>
         @if (wgAlerts.Count > 0 || wgStale.Count > 0)
         {
@@ -378,20 +378,23 @@
 
     @if (_archivedWorkshops.Count > 0)
     {
-    <section class="panel">
-        <div class="closed-section">
-            <div class="closed-head">
-                <span class="archived-label"><span aria-hidden="true">&#128230;</span> archived workshops</span>
-                <span class="closed-count">@_archivedWorkshops.Count</span>
-            </div>
-            <div class="closed-strip">
-                @foreach (var w in _archivedWorkshops)
-                {
-                    <span class="closed-chip">@w.Name@if (w.IsMini) { <span class="mini-tag"> mini</span> } <button class="link-btn" @onclick="() => RestoreWorkshop(w.Dir)" title="bring this workshop back to the board \u2014 whole, with all its work">restore</button></span>
-                }
-            </div>
+    <div class="setup-bar @(_archivedOpen ? "open" : "collapsed")" role="button" tabindex="0" aria-expanded="@(_archivedOpen ? "true" : "false")" aria-controls="closed-workshops-body"
+         @onclick="ToggleArchived" @onkeydown="ArchivedKey" title="@(_archivedOpen ? "hide" : "show closed workshops")">
+        <span class="setup-caret" aria-hidden="true">@(_archivedOpen ? "\u25BE" : "\u25B8")</span>
+        <span class="setup-bar-label">@_archivedWorkshops.Count closed workshop@(_archivedWorkshops.Count == 1 ? "" : "s")</span>
+        <span class="muted setup-bar-sub">hidden from the board, restore any time</span>
+    </div>
+    @if (_archivedOpen)
+    {
+    <section class="panel" id="closed-workshops-body">
+        <div class="closed-strip">
+            @foreach (var w in _archivedWorkshops)
+            {
+                <span class="closed-chip">@w.Name@if (w.IsMini) { <span class="mini-tag"> mini</span> } <button class="link-btn" @onclick="() => RestoreWorkshop(w.Dir)" title="bring this workshop back to the board \u2014 whole, with all its work">restore</button></span>
+            }
         </div>
     </section>
+    }
     }
 
     @if (_advanced)
@@ -487,6 +490,7 @@
     private bool _advanced;   // false = "keep it simple" default; true = "show me everything"
     private bool _setupOpen;  // the create-workshop/open-desk section; collapsed by default once a workshop exists (clean first-run)
     private bool _orphansOpen;  // the "not in a workshop yet" sessions; collapsed by default to keep the board clean
+    private bool _archivedOpen; // the closed (archived) workshops strip; collapsed by default so it stays out of the way
     private bool _isLight;    // reflects the client theme (synced after first render)
     private string _newWorkshopName = "";
     private string _newMiniName = "";
@@ -711,6 +715,13 @@
     private void OrphansKey(KeyboardEventArgs e)
     {
         if (e.Key is "Enter" or " " or "Spacebar") _orphansOpen = !_orphansOpen;
+    }
+
+    private void ToggleArchived() => _archivedOpen = !_archivedOpen;
+
+    private void ArchivedKey(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " " or "Spacebar") _archivedOpen = !_archivedOpen;
     }
 
     private void DeskKey(KeyboardEventArgs e)
