@@ -98,11 +98,24 @@
     </div>
 }
 
-<div class="toolbar">
-    <span class="muted">first set up a workshop (a repo), then open desks in it &middot; live from session-state, refreshes every 3s</span>
+<div class="setup-bar @(_setupOpen ? "open" : "collapsed")" role="button" tabindex="0" aria-expanded="@(_setupOpen ? "true" : "false")" aria-controls="setup-body"
+     @onclick="ToggleSetup" @onkeydown="SetupKey" title="@(_setupOpen ? "hide this section" : "create a workshop or open a desk")">
+    <span class="setup-caret" aria-hidden="true">@(_setupOpen ? "\u25BE" : "\u25B8")</span>
+    @if (_setupOpen)
+    {
+        <span class="muted">first set up a workshop (a repo), then open desks in it &middot; live from session-state, refreshes every 3s</span>
+        <span class="setup-hide">hide</span>
+    }
+    else
+    {
+        <span class="setup-bar-label">new workshop or desk</span>
+        <span class="muted setup-bar-sub">create a workshop, or open a desk in one you already have</span>
+    }
 </div>
 
-<div class="setup">
+@if (_setupOpen)
+{
+<div class="setup" id="setup-body">
     <div class="step">
         <span class="step-num">1</span>
         <span class="nd-label">create a workshop:</span>
@@ -144,6 +157,7 @@
         @if (!string.IsNullOrEmpty(_deskHint)) { <span class="nd-hint">@_deskHint</span> }
     </div>
 </div>
+}
 
 <div class="grid">
 
@@ -459,6 +473,7 @@
     private List<string> _staleDesks = new();
     private List<WorkshopGroup> _workshopGroups = new();
     private bool _advanced;   // false = "keep it simple" default; true = "show me everything"
+    private bool _setupOpen;  // the create-workshop/open-desk section; collapsed by default once a workshop exists (clean first-run)
     private bool _isLight;    // reflects the client theme (synced after first render)
     private string _newWorkshopName = "";
     private string _newMiniName = "";
@@ -473,6 +488,9 @@
     protected override void OnInitialized()
     {
         Load();
+        // Clean first-run: the setup is open when there's nothing yet, and
+        // collapsed once you already have a workshop (it's just noise then).
+        _setupOpen = _workshops.Count == 0;
         _ghLogins = GhAuth.DiscoverLogins().ToList();
         _workshopOwner = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login ?? _ghLogins.FirstOrDefault()?.Login ?? "";
         _agents = AgentClis.Available();
@@ -635,6 +653,13 @@
         ConsoleLauncher.NewDesk(dir, name, orient, _deskAgent, Config.SettingsFor(_deskAgent));  // open at the workshop root, auto-oriented
         DeskAgents.RecordLaunch(dir, _deskAgent, name);          // remember which CLI launched it (issue #2)
         _deskName = "";
+    }
+
+    private void ToggleSetup() => _setupOpen = !_setupOpen;
+
+    private void SetupKey(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " " or "Spacebar") _setupOpen = !_setupOpen;
     }
 
     private void DeskKey(KeyboardEventArgs e)

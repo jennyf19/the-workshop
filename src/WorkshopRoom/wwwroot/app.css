@@ -91,6 +91,14 @@ h1 { font-size: 1.5rem; margin: 0; }
 
 /* toolbar */
 .toolbar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.setup-bar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; padding: 0.45rem 0.7rem; background: var(--card); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; user-select: none; }
+.setup-bar:hover { border-color: var(--accent); }
+.setup-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.setup-bar.collapsed { background: transparent; border-style: dashed; }
+.setup-caret { color: var(--accent); font-size: 0.75rem; flex: none; }
+.setup-bar-label { font-weight: 600; }
+.setup-bar-sub { font-size: 0.8rem; }
+.setup-hide { margin-left: auto; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
 .btn {
     background: var(--accent); color: var(--on-accent); border: none;
     border-radius: 5px; padding: 0.4rem 0.8rem; font-size: 0.85rem; font-weight: 600;
