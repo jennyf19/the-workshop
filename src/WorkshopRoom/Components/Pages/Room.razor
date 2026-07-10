@@ -4,6 +4,7 @@
 @inject SessionStoreReader Reader
 @inject RoomConfig Config
 @inject WorkshopArchive Archive
+@inject DeskAgentStore DeskAgents
 @inject IJSRuntime JS
 
 <PageTitle>the workshop</PageTitle>
@@ -176,7 +177,7 @@
                 {
                     var sig = SignalReader.LatestForDesk(_signals, d.Name);
                     <tr>
-                        <td><strong>@d.Name</strong><div class="sub">@d.Note</div></td>
+                        <td><strong>@d.Name</strong>@if (d.Agent != "copilot") { <span class="agent-tag" title="@($"launched with {d.Agent}")">@d.Agent</span> }<div class="sub">@d.Note</div></td>
                         <td><span class="mod mod-@d.Modality">@d.Modality</span></td>
                         <td class="mono">@d.Model</td>
                         <td class="mono tok" title="@($"{d.TokensOut:N0} output tokens (local; input not tracked per-turn)")">@FmtTok(d.TokensOut)</td>
@@ -297,7 +298,7 @@
                 @foreach (var d in orphans)
                 {
                     <tr>
-                        <td><strong>@d.Name</strong><div class="sub">@d.Note</div></td>
+                        <td><strong>@d.Name</strong>@if (d.Agent != "copilot") { <span class="agent-tag" title="@($"launched with {d.Agent}")">@d.Agent</span> }<div class="sub">@d.Note</div></td>
                         <td><span class="mod mod-@d.Modality">@d.Modality</span></td>
                         <td class="mono">@d.Model</td>
                         <td class="mono tok" title="@($"{d.TokensOut:N0} output tokens (local; input not tracked per-turn)")">@FmtTok(d.TokensOut)</td>
@@ -565,7 +566,7 @@
         }
     }
 
-    private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd);
+    private void OpenConsole(Desk d) => ConsoleLauncher.Open(d.SessionId, d.Cwd, d.Agent, Config.SettingsFor(d.Agent));
 
     // Close a desk from the board. If a live agent still holds it (a console pid),
     // wind it down gracefully — end the terminal, let the agent journal — then
@@ -596,7 +597,8 @@
     {
         var workshopDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetDirectoryName(df.Path))!;
         var orient = WorkshopLauncher.DeskOrientPrompt(df);
-        ConsoleLauncher.NewDesk(workshopDir, df.Name, orient, _deskAgent);
+        ConsoleLauncher.NewDesk(workshopDir, df.Name, orient, _deskAgent, Config.SettingsFor(_deskAgent));
+        DeskAgents.RecordLaunch(workshopDir, _deskAgent, df.Name);   // remember which CLI launched it (issue #2)
     }
 
     private void Resolve(HandsUp h)
@@ -630,7 +632,8 @@
         if (name.Length == 0) name = "desk";
         WorkshopLauncher.PrepareDesk(dir, name);                 // give the desk its own space + journal + brief
         var orient = $"read ./desks/{name}/START-HERE.md, then get going";
-        ConsoleLauncher.NewDesk(dir, name, orient, _deskAgent);  // open at the workshop root, auto-oriented
+        ConsoleLauncher.NewDesk(dir, name, orient, _deskAgent, Config.SettingsFor(_deskAgent));  // open at the workshop root, auto-oriented
+        DeskAgents.RecordLaunch(dir, _deskAgent, name);          // remember which CLI launched it (issue #2)
         _deskName = "";
     }
 

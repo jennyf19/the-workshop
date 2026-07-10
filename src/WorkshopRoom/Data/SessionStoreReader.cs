@@ -22,6 +22,7 @@ public sealed class SessionStoreReader
     private readonly string _closedPath;  // closed-desks.json (operator-closed desks, hidden from the board)
     private readonly int _windowHours;
     private readonly int _maxDesks;
+    private readonly DeskAgentStore _agents;   // which CLI launched each desk (issue #2)
 
     private readonly object _lock = new();
     private LiveSnapshot? _cache;
@@ -30,7 +31,7 @@ public sealed class SessionStoreReader
     // parse cache: session id -> (events.jsonl mtime, parsed). Re-parsed only when the file changes.
     private readonly Dictionary<string, (DateTime mtime, ParsedSession parsed)> _perSession = new();
 
-    public SessionStoreReader(string root, string usageCache, string namesPath, string resolvedPath, string closedPath, int windowHours = 12, int maxDesks = 10)
+    public SessionStoreReader(string root, string usageCache, string namesPath, string resolvedPath, string closedPath, int windowHours = 12, int maxDesks = 10, DeskAgentStore? agents = null)
     {
         _root = root;
         _usageCache = usageCache;
@@ -39,6 +40,7 @@ public sealed class SessionStoreReader
         _closedPath = closedPath;
         _windowHours = windowHours;
         _maxDesks = maxDesks;
+        _agents = agents ?? new DeskAgentStore(null);
     }
 
     public LiveSnapshot GetSnapshot()
@@ -93,11 +95,12 @@ public sealed class SessionStoreReader
 
                 var fullId = dir.Name;
                 var shortId = fullId.Length >= 8 ? fullId[..8] : fullId;
-                var name = ResolveName(shortId, ps.Cwd, ps.UserNamed, ps.RawName, namesById, namesByCwd);
+                var (agentKey, launchName) = _agents.Resolve(fullId, ps.Cwd, ps.CreatedUtc);
+                var name = ResolveName(shortId, ps.Cwd, ps.UserNamed, ps.RawName, namesById, namesByCwd, launchName);
                 var consolePid = OpenConsolePid(dir.FullName);
                 var sync = GitStatus.StateFor(ps.Cwd);
 
-                desks.Add(new Desk(0, name, "live", ps.Model, status, ps.Note, lastSeen, tin, tout, aic, fullId, ps.Cwd, consolePid, sync));
+                desks.Add(new Desk(0, name, "live", ps.Model, status, ps.Note, lastSeen, tin, tout, aic, fullId, ps.Cwd, consolePid, sync, agentKey));
 
                 if (!string.IsNullOrWhiteSpace(ps.LastUser))
                     bench.Add(new BenchTurn(0, ++seq, name, "claim", Trunc(ps.LastUser!, 200), null, name, lastSeen));
@@ -146,6 +149,7 @@ public sealed class SessionStoreReader
         string cwd = "";
         bool userNamed = false;
         string note = "";
+        DateTime? createdUtc = null;
 
         var wy = Path.Combine(dir, "workspace.yaml");
         if (File.Exists(wy))
@@ -157,6 +161,13 @@ public sealed class SessionStoreReader
                 else if (t.StartsWith("mc_session_id:")) cloudId = t["mc_session_id:".Length..].Trim();
                 else if (t.StartsWith("cwd:")) { var v = t["cwd:".Length..].Trim(); if (v.Length > 0) cwd = v; }
                 else if (t.StartsWith("user_named:")) userNamed = t["user_named:".Length..].Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+                else if (t.StartsWith("created_at:"))
+                {
+                    var v = t["created_at:".Length..].Trim();
+                    if (DateTime.TryParse(v, System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var dt))
+                        createdUtc = dt;
+                }
             }
         }
 
@@ -194,7 +205,7 @@ public sealed class SessionStoreReader
 
         var parsed = new ParsedSession(rawName, cloudId, model, cwd, userNamed, note, lastUser,
             lastAssistant is null ? null : StripReminder(lastAssistant),
-            pendingAskQuestion is null ? null : StripReminder(pendingAskQuestion), outTokens);
+            pendingAskQuestion is null ? null : StripReminder(pendingAskQuestion), outTokens, createdUtc);
         _perSession[id] = (ev.LastWriteTimeUtc, parsed);
         return parsed;
     }
@@ -314,10 +325,14 @@ public sealed class SessionStoreReader
     // This is why a desk shows "code-review" or "The_Workshop" instead of the
     // auto-generated "Create New Project".
     internal static string ResolveName(string shortId, string cwd, bool userNamed, string rawName,
-        Dictionary<string, string> byId, Dictionary<string, string> byCwd)
+        Dictionary<string, string> byId, Dictionary<string, string> byCwd, string? launchName = null)
     {
         if (byId.TryGetValue(shortId, out var n1)) return n1;
         if (!string.IsNullOrEmpty(cwd) && byCwd.TryGetValue(cwd, out var n2)) return n2;
+        // The name the operator typed when launching the desk. Ranks above the
+        // CLI's own name because an Agency desk can't take --name, so its raw
+        // session name is auto-generated and this is the only real label.
+        if (!string.IsNullOrWhiteSpace(launchName)) return launchName;
         if (userNamed && !string.IsNullOrWhiteSpace(rawName)) return rawName;
         var leaf = MeaningfulLeaf(cwd);
         if (leaf is not null) return leaf;
@@ -508,5 +523,5 @@ public sealed class SessionStoreReader
 
     private static string Trunc(string s, int n) => s.Length > n ? s[..n] + " ..." : s;
 
-    private record ParsedSession(string RawName, string? CloudId, string Model, string Cwd, bool UserNamed, string Note, string? LastUser, string? LastAssistant, string? PendingAsk, long OutputTokens);
+    private record ParsedSession(string RawName, string? CloudId, string Model, string Cwd, bool UserNamed, string Note, string? LastUser, string? LastAssistant, string? PendingAsk, long OutputTokens, DateTime? CreatedUtc);
 }

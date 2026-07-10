@@ -12,10 +12,35 @@ var usageCache = Path.Combine(builder.Environment.ContentRootPath, "usage-cache.
 var deskNames = Path.Combine(builder.Environment.ContentRootPath, "desk-names.json");
 var resolvedPath = Path.Combine(builder.Environment.ContentRootPath, "handsup-resolved.json");
 var closedPath = Path.Combine(builder.Environment.ContentRootPath, "closed-desks.json");
-builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath, closedPath));
+var deskAgentsPath = Path.Combine(builder.Environment.ContentRootPath, "desk-agents.json");
+var deskAgents = new WorkshopRoom.Data.DeskAgentStore(deskAgentsPath);
+builder.Services.AddSingleton(deskAgents);
+builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath, closedPath, agents: deskAgents));
 
 var workshopsDir = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath;
-builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { WorkshopsBaseDir = workshopsDir });
+
+// Per-agent launch defaults. Agency is the only configurable agent today: it
+// launches (and resumes) wrapped with these MCPs/plugin/model/agent instead of
+// bare (issue #2). Resolution order: environment override > appsettings > the
+// pr-inbox default. Env: WORKSHOP_AGENCY_{MCPS,PLUGIN,MODEL,AGENT,RESUME}.
+var cfg = builder.Configuration;
+string AgencyOpt(string env, string key, string fallback)
+{
+    var e = Environment.GetEnvironmentVariable(env);
+    if (!string.IsNullOrWhiteSpace(e)) return e.Trim();
+    var c = cfg[$"AgentDefaults:agency:{key}"];
+    return string.IsNullOrWhiteSpace(c) ? fallback : c.Trim();
+}
+var agentDefaults = new Dictionary<string, WorkshopRoom.Data.AgentLaunchSettings>
+{
+    ["agency"] = new WorkshopRoom.Data.AgentLaunchSettings(
+        Mcps: AgencyOpt("WORKSHOP_AGENCY_MCPS", "Mcps", "workiq,teams"),
+        Plugin: AgencyOpt("WORKSHOP_AGENCY_PLUGIN", "Plugin", ""),
+        Model: AgencyOpt("WORKSHOP_AGENCY_MODEL", "Model", ""),
+        Agent: AgencyOpt("WORKSHOP_AGENCY_AGENT", "Agent", ""),
+        ResumeMode: AgencyOpt("WORKSHOP_AGENCY_RESUME", "ResumeMode", "wrapper")),
+};
+builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { WorkshopsBaseDir = workshopsDir, AgentDefaults = agentDefaults });
 
 var archivedPath = Path.Combine(builder.Environment.ContentRootPath, "archived-workshops.json");
 builder.Services.AddSingleton(new WorkshopRoom.Data.WorkshopArchive(archivedPath));

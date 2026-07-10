@@ -7,10 +7,13 @@ namespace WorkshopRoom.Data;
 // (which is the session-state folder name) in the desk's working directory.
 public static class ConsoleLauncher
 {
-    public static bool Open(string sessionId, string cwd)
+    public static bool Open(string sessionId, string cwd, string agentKey = "copilot", AgentLaunchSettings? settings = null)
     {
         if (string.IsNullOrWhiteSpace(sessionId)) return false;
-        var resume = $"copilot --resume={sessionId}";
+        // Reopen the desk with the shape the launching agent needs. An Agency
+        // desk comes back through its wrapper (MCPs/plugin re-armed) instead of
+        // as a bare Copilot process that silently drops its tools (issue #2).
+        var resume = AgentClis.BuildResume(AgentClis.ByKey(agentKey), sessionId, settings);
 
         // Prefer Windows Terminal: opens a clean tab in the desk's folder.
         try
@@ -33,27 +36,18 @@ public static class ConsoleLauncher
     }
 
     // Starts a brand-new desk: ensures the folder exists, then opens a fresh
-    // agent-CLI session there in a new terminal. Copilot supports --name and an
-    // orientation prompt (-i) so the desk auto-runs it; other agents (agency,
-    // claude) are launched bare in the folder. agentKey is resolved against the
-    // AgentClis whitelist, so an arbitrary command can never reach the shell.
-    public static bool NewDesk(string dir, string name, string? orient = null, string agentKey = "copilot")
+    // agent-CLI session there in a new terminal. agentKey is resolved against
+    // the AgentClis whitelist, and every option the room fills in is validated,
+    // so an arbitrary command can never reach the shell. Copilot gets --name +
+    // an orientation prompt (-i); Agency is launched wrapped with its MCPs,
+    // plugin, model and agent (issue #2) instead of bare.
+    public static bool NewDesk(string dir, string name, string? orient = null, string agentKey = "copilot", AgentLaunchSettings? settings = null)
     {
         if (string.IsNullOrWhiteSpace(dir)) return false;
         try { Directory.CreateDirectory(dir); } catch { return false; }
 
         var agent = AgentClis.ByKey(agentKey);
-        string invoke;
-        if (string.Equals(agent.Key, AgentClis.Copilot.Key, StringComparison.OrdinalIgnoreCase))
-        {
-            var nameArg = string.IsNullOrWhiteSpace(name) ? "" : $" --name \"{name}\"";
-            var orientArg = string.IsNullOrWhiteSpace(orient) ? "" : $" -i \"{orient}\"";
-            invoke = $"{agent.Command}{nameArg}{orientArg}";
-        }
-        else
-        {
-            invoke = agent.Command;   // whitelisted command, launched in the desk folder
-        }
+        var invoke = AgentClis.BuildLaunch(agent, name, orient, settings);
 
         try
         {

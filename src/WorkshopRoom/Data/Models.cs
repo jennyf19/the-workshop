@@ -7,12 +7,15 @@ namespace WorkshopRoom.Data;
 public record Artifact(int Id, string Ref, string Title);
 
 // A long-running agent context. Modality = the workshop's experience ladder
-// (lived > watched > read). Status = active / idle / hands-up.
+// (lived > watched > read). Status = active / idle / hands-up. Agent is the CLI
+// the desk was launched with (copilot by default); it decides how the desk is
+// resumed, so an Agency desk comes back wrapped rather than as bare Copilot.
 public record Desk(
     int Id, string Name, string Modality, string Model,
     string Status, string Note, DateTime LastSeen,
     long TokensIn, long TokensOut, long Aic,
-    string SessionId, string Cwd, int ConsolePid, string Sync);
+    string SessionId, string Cwd, int ConsolePid, string Sync,
+    string Agent = "copilot");
 
 // One append-only, signed turn on the shared bench. Seq is its stable
 // identity within an artifact (DeltaDB's "every operation gets an identity").
