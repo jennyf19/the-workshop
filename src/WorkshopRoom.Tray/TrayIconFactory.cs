@@ -7,10 +7,9 @@ namespace WorkshopRoom.Tray;
 
 /// <summary>
 /// Builds the notification-area icon at runtime so the project ships no binary
-/// .ico asset. A rounded accent square (the dashboard's --accent, #5DA4FF) with
-/// the hammer-and-wrench workshop mark (U+1F6E0) in white, rendered at 32x32
-/// (Windows down-samples for the 16px tray slot). Same mark the browser shows
-/// in color.
+/// .ico asset. A rounded dark-purple square with the hammer-and-wrench workshop
+/// mark (U+1F6E0) in white, rendered at 32x32 (Windows down-samples for the
+/// 16px tray slot). Purple so it stands out among the usual tray icons.
 /// </summary>
 internal static class TrayIconFactory
 {
@@ -26,7 +25,7 @@ internal static class TrayIconFactory
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
             g.Clear(Color.Transparent);
 
-            using var bg = new SolidBrush(ColorTranslator.FromHtml("#5DA4FF"));
+            using var bg = new SolidBrush(ColorTranslator.FromHtml("#6D28D9"));   // dark purple — stands out in the tray
             using var path = RoundedRect(new Rectangle(1, 1, 30, 30), 7);
             g.FillPath(bg, path);
 
