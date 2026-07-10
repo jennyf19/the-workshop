@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/WorkshopRoom/WorkshopRoom.csproj" />
+    <Project Path="src/WorkshopRoom.Tray/WorkshopRoom.Tray.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/WorkshopRoom.Tests/WorkshopRoom.Tests.csproj" />
