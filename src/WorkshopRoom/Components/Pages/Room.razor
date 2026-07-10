@@ -296,6 +296,10 @@
                 </div>
             </div>
         }
+        @if (wg.Desks.Count == 0 && wg.Dormant.Count == 0)
+        {
+            <div class="empty">no desks yet &mdash; <button class="link-btn" @onclick="() => OpenDeskHere(wg.Dir)">open a desk here</button></div>
+        }
     </section>
     }
 
@@ -565,7 +569,7 @@
             var wDormant = WorkshopLauncher.ListDeskFolders(w.Dir)
                 .Where(df => !activeNames.Contains(df.Name)).ToList();
             return new WorkshopGroup(w.Name, w.Dir, w.IsMini, wDesks, wDormant);
-        }).Where(g => g.Desks.Count > 0 || g.Dormant.Count > 0).ToList();
+        }).ToList();   // every workshop gets a card, even before it has a desk — so a freshly-created one shows up immediately
 
         // Signals = latest agent signal per desk (from .signals/ folders)
         _signals = SignalReader.ReadLatestSignals(_workshops.Select(w => w.Dir));
@@ -657,6 +661,15 @@
     // A workshop chip was clicked: fill the folder field with it (the operator
     // can still add a desk name before opening).
     private void PickWorkshop(string dir) { _deskFolder = dir; _deskHint = ""; }
+
+    // From an empty workshop card: reveal the setup with this workshop prefilled
+    // so the operator can name and open its first desk.
+    private void OpenDeskHere(string dir)
+    {
+        _deskFolder = dir;
+        _deskHint = "";
+        _setupOpen = true;
+    }
 
     // Open a desk in a workshop folder that already exists. Bare names resolve
     // under the workshops base dir; a full path is used as-is. The folder must
