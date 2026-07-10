@@ -79,25 +79,6 @@
 </div>
 }
 
-@if (_taAlerts.Count > 0 || _staleDesks.Count > 0)
-{
-    <div class="ta-strip">
-        <span class="ta-title" title="technical assistant">ta</span>
-        @if (_staleDesks.Count > 0)
-        {
-            <span class="ta-pill stale" title="@string.Join(", ", _staleDesks)">@_staleDesks.Count stale</span>
-        }
-        @foreach (var alert in _taAlerts.Take(3))
-        {
-            <span class="ta-alert @alert.Level" title="@alert.Detail">@alert.Desk: @alert.Summary</span>
-        }
-        @if (_taAlerts.Count > 3)
-        {
-            <span class="ta-more">+@(_taAlerts.Count - 3) more</span>
-        }
-    </div>
-}
-
 <div class="setup-bar @(_setupOpen ? "open" : "collapsed")" role="button" tabindex="0" aria-expanded="@(_setupOpen ? "true" : "false")" aria-controls="setup-body"
      @onclick="ToggleSetup" @onkeydown="SetupKey" title="@(_setupOpen ? "hide this section" : "create a workshop or open a desk")">
     <span class="setup-caret" aria-hidden="true">@(_setupOpen ? "\u25BE" : "\u25B8")</span>
@@ -163,6 +144,8 @@
 
     @foreach (var wg in _workshopGroups)
     {
+        var wgAlerts = AlertsFor(wg);
+        var wgStale = StaleFor(wg);
     <section class="panel workshop-card">
         <h2>@wg.Name @if (wg.IsMini) { <span class="mini-badge" title="a local mini-workshop \u2014 no repo">mini &middot; local</span> } <span class="count">@wg.Desks.Count desks</span>
             @if (wg.IsMini)
@@ -171,6 +154,24 @@
             }
             <button class="link-btn archive-btn" @onclick="() => ArchiveWorkshop(wg.Dir)" title="hide this workshop from the board \u2014 it stays whole on disk and can be restored">archive</button>
         </h2>
+        @if (wgAlerts.Count > 0 || wgStale.Count > 0)
+        {
+            <div class="ta-strip">
+                <span class="ta-title" title="technical assistant">ta</span>
+                @if (wgStale.Count > 0)
+                {
+                    <span class="ta-pill stale" title="@string.Join(", ", wgStale)">@wgStale.Count stale</span>
+                }
+                @foreach (var alert in wgAlerts.Take(3))
+                {
+                    <span class="ta-alert @alert.Level" title="@alert.Detail">@alert.Desk: @alert.Summary</span>
+                }
+                @if (wgAlerts.Count > 3)
+                {
+                    <span class="ta-more">+@(wgAlerts.Count - 3) more</span>
+                }
+            </div>
+        }
         @if (_signals.Count > 0 && wg == _workshopGroups.First())
         {
             <div class="signal-key">
@@ -812,6 +813,31 @@
 
     private static string Truncate(string s, int max) =>
         s.Length <= max ? s : s[..max] + "\u2026";
+
+    // The TA (coordination) alerts and stale desks that belong to one workshop,
+    // matched by desk name — so each workshop card shows its own, instead of one
+    // global strip floating at the top of the board. Signals are keyed by desk
+    // *folder* name, so we match against both live desks and dormant desk
+    // folders (a desk can raise a signal and then go dormant).
+    private static HashSet<string> DeskNamesIn(WorkshopGroup wg)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var d in wg.Desks) names.Add(d.Name);
+        foreach (var df in wg.Dormant) names.Add(df.Name);
+        return names;
+    }
+
+    private List<TaAlert> AlertsFor(WorkshopGroup wg)
+    {
+        var names = DeskNamesIn(wg);
+        return _taAlerts.Where(a => names.Contains(a.Desk)).ToList();
+    }
+
+    private List<string> StaleFor(WorkshopGroup wg)
+    {
+        var names = DeskNamesIn(wg);
+        return _staleDesks.Where(names.Contains).ToList();
+    }
 
     private record TaAlert(string Desk, string Level, string Summary, string Detail);
 
