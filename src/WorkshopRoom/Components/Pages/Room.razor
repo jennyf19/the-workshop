@@ -164,7 +164,7 @@
                 }
                 @foreach (var alert in wgAlerts.Take(3))
                 {
-                    <span class="ta-alert @alert.Level" title="@alert.Detail">@alert.Desk: @alert.Summary <button class="ta-dismiss" @onclick="() => DismissAlert(alert)" title="dismiss this alert" aria-label="dismiss alert">&times;</button></span>
+                    <span class="ta-alert @alert.Level" title="@alert.Detail"><span class="ta-alert-text">@alert.Desk: @alert.Summary</span><button class="ta-dismiss" @onclick="() => DismissAlert(alert)" title="dismiss this alert" aria-label="dismiss alert">&times;</button></span>
                 }
                 @if (wgAlerts.Count > 3)
                 {
