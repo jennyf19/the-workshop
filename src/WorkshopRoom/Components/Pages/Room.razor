@@ -304,9 +304,15 @@
     @{ var orphans = _desks.Where(d => !grouped.Contains(d.SessionId)).ToList(); }
     @if (orphans.Count > 0)
     {
-    <section class="panel workshop-card no-workshop">
-        <h2>not in a workshop yet <span class="count">@orphans.Count desks</span></h2>
-        <div class="no-workshop-hint muted">these Copilot sessions aren&rsquo;t part of a workshop &mdash; create one below to group and coordinate them</div>
+    <div class="setup-bar @(_orphansOpen ? "open" : "collapsed")" role="button" tabindex="0" aria-expanded="@(_orphansOpen ? "true" : "false")" aria-controls="orphans-body"
+         @onclick="ToggleOrphans" @onkeydown="OrphansKey" title="@(_orphansOpen ? "hide these sessions" : "show these sessions")">
+        <span class="setup-caret" aria-hidden="true">@(_orphansOpen ? "\u25BE" : "\u25B8")</span>
+        <span class="setup-bar-label">@orphans.Count not in a workshop yet</span>
+        <span class="muted setup-bar-sub">loose Copilot sessions &mdash; create a workshop above to group and coordinate them</span>
+    </div>
+    @if (_orphansOpen)
+    {
+    <section class="panel workshop-card no-workshop" id="orphans-body">
         <table>
             <thead><tr><th scope="col">desk</th><th scope="col">modality</th><th scope="col">model</th><th scope="col">output</th>@if (_advanced) { <th scope="col">AIC</th> }<th scope="col">status</th><th scope="col">last</th><th></th></tr></thead>
             <tbody>
@@ -339,11 +345,12 @@
         </table>
     </section>
     }
+    }
 
     @if (_workshopGroups.Count == 0 && _desks.Count == 0)
     {
     <section class="panel">
-        <div class="empty">no desks yet &mdash; create a workshop above, then open a desk in it. your open Copilot sessions will show up here.</div>
+        <div class="empty">nothing here yet &mdash; create a workshop above, or a local mini-workshop (no repo needed), then open a desk in it. your open Copilot sessions show up here too.</div>
     </section>
     }
 
@@ -475,6 +482,7 @@
     private List<WorkshopGroup> _workshopGroups = new();
     private bool _advanced;   // false = "keep it simple" default; true = "show me everything"
     private bool _setupOpen;  // the create-workshop/open-desk section; collapsed by default once a workshop exists (clean first-run)
+    private bool _orphansOpen;  // the "not in a workshop yet" sessions; collapsed by default to keep the board clean
     private bool _isLight;    // reflects the client theme (synced after first render)
     private string _newWorkshopName = "";
     private string _newMiniName = "";
@@ -676,6 +684,13 @@
     private void SetupKey(KeyboardEventArgs e)
     {
         if (e.Key is "Enter" or " " or "Spacebar") _setupOpen = !_setupOpen;
+    }
+
+    private void ToggleOrphans() => _orphansOpen = !_orphansOpen;
+
+    private void OrphansKey(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " " or "Spacebar") _orphansOpen = !_orphansOpen;
     }
 
     private void DeskKey(KeyboardEventArgs e)
