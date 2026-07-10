@@ -122,9 +122,9 @@
     <div class="step">
         <span class="step-num">2</span>
         <span class="nd-label">open a desk in:</span>
-        @foreach (var w in _workshops)
+        @foreach (var w in _workshops.Where(w => !w.IsMini))
         {
-            <button class="chip @(_deskFolder == w.Dir ? "on" : "")" @onclick="() => PickWorkshop(w.Dir)" title="@w.Dir">@w.Name@if (w.IsMini) { <span class="mini-tag"> mini</span> }</button>
+            <button class="chip @(_deskFolder == w.Dir ? "on" : "")" @onclick="() => PickWorkshop(w.Dir)" title="@w.Dir">@w.Name</button>
         }
         <input class="nd-input wide" @bind="_deskFolder" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="a workshop folder, e.g. Ember_workshop" autocomplete="off" spellcheck="false" aria-label="workshop folder to open a desk in" />
         <input class="nd-input" @bind="_deskName" @bind:event="oninput" @onkeydown="DeskKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="desk name (optional)" autocomplete="off" spellcheck="false" aria-label="desk name (optional)" />
