@@ -595,9 +595,7 @@
     private void StartDormantDesk(WorkshopLauncher.DeskFolder df)
     {
         var workshopDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetDirectoryName(df.Path))!;
-        var orient = System.IO.File.Exists(System.IO.Path.Combine(df.Path, "START-HERE.md"))
-            ? $"read ./{df.Location}/{df.Name}/START-HERE.md, then get going"
-            : $"read ./{df.Location}/{df.Name}/README.md if it exists, orient yourself, then get going";
+        var orient = WorkshopLauncher.DeskOrientPrompt(df);
         ConsoleLauncher.NewDesk(workshopDir, df.Name, orient, _deskAgent);
     }
 

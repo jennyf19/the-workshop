@@ -94,6 +94,66 @@ public class WorkshopLauncherTests
         finally { try { Directory.Delete(baseDir, recursive: true); } catch { } }
     }
 
+    [Fact]
+    public void DeskOrientPrompt_points_straight_at_START_HERE_when_present()
+    {
+        var baseDir = Path.Combine(Path.GetTempPath(), "ws-orient-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var deskDir = Path.Combine(baseDir, "desks", "alpha");
+            Directory.CreateDirectory(deskDir);
+            File.WriteAllText(Path.Combine(deskDir, "START-HERE.md"), "");
+
+            var df = new WorkshopLauncher.DeskFolder("alpha", deskDir, "desks");
+            WorkshopLauncher.DeskOrientPrompt(df)
+                .Should().Be("read ./desks/alpha/START-HERE.md, then get going");
+        }
+        finally { try { Directory.Delete(baseDir, recursive: true); } catch { } }
+    }
+
+    [Fact]
+    public void DeskOrientPrompt_names_only_the_orientation_files_that_exist()
+    {
+        // a classroom-style desk (e.g. Ember_workshop): BENCH.md + journal.md, no README, no START-HERE
+        var baseDir = Path.Combine(Path.GetTempPath(), "ws-orient-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var deskDir = Path.Combine(baseDir, "classroom", "workshop-product");
+            Directory.CreateDirectory(deskDir);
+            File.WriteAllText(Path.Combine(deskDir, "BENCH.md"), "");
+            File.WriteAllText(Path.Combine(deskDir, "journal.md"), "");
+
+            var df = new WorkshopLauncher.DeskFolder("workshop-product", deskDir, "classroom");
+            var prompt = WorkshopLauncher.DeskOrientPrompt(df);
+
+            prompt.Should().Contain("./classroom/workshop-product/BENCH.md");
+            prompt.Should().Contain("./classroom/workshop-product/journal.md");
+            prompt.Should().NotContain("README.md");    // don't send it after a file that isn't there
+            prompt.Should().NotContain("if it exists");  // the dead-end phrasing that caused the bug
+        }
+        finally { try { Directory.Delete(baseDir, recursive: true); } catch { } }
+    }
+
+    [Fact]
+    public void DeskOrientPrompt_falls_back_to_explore_when_the_folder_has_no_known_files()
+    {
+        // the exact reported bug: classroom/workshop has neither README nor START-HERE,
+        // so the old prompt sent the desk to a README that isn't there.
+        var baseDir = Path.Combine(Path.GetTempPath(), "ws-orient-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var deskDir = Path.Combine(baseDir, "classroom", "workshop");
+            Directory.CreateDirectory(deskDir);
+
+            var df = new WorkshopLauncher.DeskFolder("workshop", deskDir, "classroom");
+            var prompt = WorkshopLauncher.DeskOrientPrompt(df);
+
+            prompt.Should().Contain("orient yourself at ./classroom/workshop/");
+            prompt.Should().NotContain("if it exists");  // never claim a specific file is there
+        }
+        finally { try { Directory.Delete(baseDir, recursive: true); } catch { } }
+    }
+
     private static void MakeRepo(string baseDir, string name, bool git, bool handsUp, bool classroom, bool desks)
     {
         var dir = Path.Combine(baseDir, name);

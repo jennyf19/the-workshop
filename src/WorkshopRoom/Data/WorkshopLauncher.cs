@@ -250,6 +250,29 @@ public static class WorkshopLauncher
 
     public record DeskFolder(string Name, string Path, string Location);
 
+    // Builds the orientation prompt handed to a dormant desk when the operator
+    // spins one up from the board. START-HERE.md is a desk's own orientation
+    // contract, so we point straight at it when it's there. Otherwise we name
+    // only the orientation files that actually exist (classroom-style desks keep
+    // a BENCH.md + journal.md, not a README), so a desk never dead-ends being
+    // sent to read a file that isn't there — the bug that made desks open with
+    // "…/README.md doesn't exist, let me orient on the actual layout."
+    public static string DeskOrientPrompt(DeskFolder df)
+    {
+        var rel = $"./{df.Location}/{df.Name}";
+        if (File.Exists(Path.Combine(df.Path, "START-HERE.md")))
+            return $"read {rel}/START-HERE.md, then get going";
+
+        var present = new[] { "README.md", "BENCH.md", "journal.md" }
+            .Where(f => File.Exists(Path.Combine(df.Path, f)))
+            .Select(f => $"{rel}/{f}")
+            .ToList();
+        if (present.Count > 0)
+            return $"read {string.Join(" + ", present)}, orient yourself, then get going";
+
+        return $"orient yourself at {rel}/ — explore it and read whatever's there (START-HERE / README / BENCH / journal) — then get going";
+    }
+
     // Scaffolds a desk's own space inside a workshop so it has somewhere to keep
     // its journal and brief before the agent arrives, plus a START-HERE it reads
     // to orient. Idempotent: existing files are left as they are. Returns the
