@@ -12,10 +12,11 @@ var usageCache = Path.Combine(builder.Environment.ContentRootPath, "usage-cache.
 var deskNames = Path.Combine(builder.Environment.ContentRootPath, "desk-names.json");
 var resolvedPath = Path.Combine(builder.Environment.ContentRootPath, "handsup-resolved.json");
 var closedPath = Path.Combine(builder.Environment.ContentRootPath, "closed-desks.json");
+var alertsPath = Path.Combine(builder.Environment.ContentRootPath, "alerts-dismissed.json");
 var deskAgentsPath = Path.Combine(builder.Environment.ContentRootPath, "desk-agents.json");
 var deskAgents = new WorkshopRoom.Data.DeskAgentStore(deskAgentsPath);
 builder.Services.AddSingleton(deskAgents);
-builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath, closedPath, agents: deskAgents));
+builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath, closedPath, agents: deskAgents, alertsPath: alertsPath));
 
 var workshopsDir = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath;
 

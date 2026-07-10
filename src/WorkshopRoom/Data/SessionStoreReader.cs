@@ -20,6 +20,7 @@ public sealed class SessionStoreReader
     private readonly string _namesPath;   // desk-names.json (operator overrides, optional)
     private readonly string _resolvedPath; // handsup-resolved.json (operator-dismissed hands)
     private readonly string _closedPath;  // closed-desks.json (operator-closed desks, hidden from the board)
+    private readonly string? _alertsPath;  // alerts-dismissed.json (operator-dismissed TA alerts)
     private readonly int _windowHours;
     private readonly int _maxDesks;
     private readonly DeskAgentStore _agents;   // which CLI launched each desk (issue #2)
@@ -31,13 +32,14 @@ public sealed class SessionStoreReader
     // parse cache: session id -> (events.jsonl mtime, parsed). Re-parsed only when the file changes.
     private readonly Dictionary<string, (DateTime mtime, ParsedSession parsed)> _perSession = new();
 
-    public SessionStoreReader(string root, string usageCache, string namesPath, string resolvedPath, string closedPath, int windowHours = 12, int maxDesks = 10, DeskAgentStore? agents = null)
+    public SessionStoreReader(string root, string usageCache, string namesPath, string resolvedPath, string closedPath, int windowHours = 12, int maxDesks = 10, DeskAgentStore? agents = null, string? alertsPath = null)
     {
         _root = root;
         _usageCache = usageCache;
         _namesPath = namesPath;
         _resolvedPath = resolvedPath;
         _closedPath = closedPath;
+        _alertsPath = alertsPath;
         _windowHours = windowHours;
         _maxDesks = maxDesks;
         _agents = agents ?? new DeskAgentStore(null);
@@ -402,6 +404,44 @@ public sealed class SessionStoreReader
             catch { /* best effort */ }
         }
         lock (_lock) { _cache = null; }
+    }
+
+    // A stable identity for a TA (coordination) alert, so the operator can
+    // dismiss one from the board and have it stay gone — until that desk emits a
+    // newer signal (a later EmittedAt yields a new key, which re-raises it).
+    internal static string AlertKey(string desk, string summary, DateTime emittedAt) =>
+        desk + "\u0000" + summary + "\u0000" + emittedAt.ToUniversalTime().ToString("o");
+
+    // Alerts the operator has explicitly dismissed; Room suppresses any whose
+    // key matches when it builds the coordination strip.
+    public HashSet<string> DismissedAlerts()
+    {
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        if (string.IsNullOrEmpty(_alertsPath)) return set;
+        try
+        {
+            if (File.Exists(_alertsPath))
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(_alertsPath));
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    foreach (var e in doc.RootElement.EnumerateArray())
+                        if (e.ValueKind == JsonValueKind.String) set.Add(e.GetString()!);
+            }
+        }
+        catch { /* dismissals are optional */ }
+        return set;
+    }
+
+    // Operator action: dismiss a TA alert. Persists the dismissal by key.
+    public void DismissAlert(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrEmpty(_alertsPath)) return;
+        var set = DismissedAlerts();
+        if (set.Add(key))
+        {
+            try { File.WriteAllText(_alertsPath, JsonSerializer.Serialize(set)); }
+            catch { /* best effort */ }
+        }
     }
 
     // The closed desks, resolved to display names so the operator can reopen

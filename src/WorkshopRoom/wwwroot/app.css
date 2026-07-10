@@ -172,6 +172,9 @@ h1 { font-size: 1.5rem; margin: 0; }
 .ta-alert.escalation { background: rgba(248,113,113,0.14); color: var(--bad); font-weight: 600; }
 .ta-alert.warn { background: rgba(234,179,8,0.1); color: var(--warn); }
 .ta-more { font-size: 0.7rem; color: var(--muted); font-style: italic; }
+.ta-dismiss { background: none; border: none; color: inherit; opacity: 0.55; cursor: pointer; font-size: 0.95rem; line-height: 1; padding: 0 0.15rem; margin-left: 0.15rem; }
+.ta-dismiss:hover { opacity: 1; }
+.ta-dismiss:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; opacity: 1; }
 
 /* workshop cards — grouped desk panels */
 .workshop-card { border-left: 3px solid var(--accent); }

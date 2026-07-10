@@ -164,7 +164,7 @@
                 }
                 @foreach (var alert in wgAlerts.Take(3))
                 {
-                    <span class="ta-alert @alert.Level" title="@alert.Detail">@alert.Desk: @alert.Summary</span>
+                    <span class="ta-alert @alert.Level" title="@alert.Detail">@alert.Desk: @alert.Summary <button class="ta-dismiss" @onclick="() => DismissAlert(alert)" title="dismiss this alert" aria-label="dismiss alert">&times;</button></span>
                 }
                 @if (wgAlerts.Count > 3)
                 {
@@ -562,26 +562,32 @@
         // Signals = latest agent signal per desk (from .signals/ folders)
         _signals = SignalReader.ReadLatestSignals(_workshops.Select(w => w.Dir));
 
-        // TA layer: detect stale desks + surface actionable alerts from signals
+        // TA layer: detect stale desks + surface actionable alerts from signals.
+        // Alerts the operator dismisses (× on the pill) stay gone until that desk
+        // emits a newer signal.
         var staleThreshold = TimeSpan.FromHours(4);
         _staleDesks = _desks
             .Where(d => (DateTime.UtcNow - d.LastSeen) > staleThreshold && d.ConsolePid == 0)
             .Select(d => d.Name)
             .ToList();
 
+        var dismissed = Reader.DismissedAlerts();
         _taAlerts = new();
         foreach (var sig in _signals)
         {
+            TaAlert? alert = null;
             if (sig.SignalType == "escalation")
-                _taAlerts.Add(new TaAlert(sig.DeskName, "escalation", "⚡ " + (sig.EscalationReason ?? "needs help"), sig.EscalationBlocked ?? ""));
+                alert = new TaAlert(sig.DeskName, "escalation", "⚡ " + (sig.EscalationReason ?? "needs help"), sig.EscalationBlocked ?? "", sig.EmittedAt);
             else if (sig.Intent > 0 && sig.Intent <= 2)
-                _taAlerts.Add(new TaAlert(sig.DeskName, "warn", $"intent {sig.Intent}/5 — may be off track", sig.WhatWasHard ?? ""));
+                alert = new TaAlert(sig.DeskName, "warn", $"intent {sig.Intent}/5 — may be off track", sig.WhatWasHard ?? "", sig.EmittedAt);
             else
             {
                 var (label, score) = WeakestScore(sig);
                 if (score <= 2)
-                    _taAlerts.Add(new TaAlert(sig.DeskName, "warn", $"{label} {score}/5", sig.WhatWasHard ?? ""));
+                    alert = new TaAlert(sig.DeskName, "warn", $"{label} {score}/5", sig.WhatWasHard ?? "", sig.EmittedAt);
             }
+            if (alert is not null && !dismissed.Contains(SessionStoreReader.AlertKey(alert.Desk, alert.Summary, alert.EmittedAt)))
+                _taAlerts.Add(alert);
         }
     }
 
@@ -623,6 +629,15 @@
     private void Resolve(HandsUp h)
     {
         Reader.Resolve(h.RaisedBy, h.Question);
+        Load();
+        StateHasChanged();
+    }
+
+    // Dismiss a TA alert the operator has handled. It stays gone until that desk
+    // emits a newer signal.
+    private void DismissAlert(TaAlert a)
+    {
+        Reader.DismissAlert(SessionStoreReader.AlertKey(a.Desk, a.Summary, a.EmittedAt));
         Load();
         StateHasChanged();
     }
@@ -839,7 +854,7 @@
         return _staleDesks.Where(names.Contains).ToList();
     }
 
-    private record TaAlert(string Desk, string Level, string Summary, string Detail);
+    private record TaAlert(string Desk, string Level, string Summary, string Detail, DateTime EmittedAt);
 
     private record WorkshopGroup(string Name, string Dir, bool IsMini, List<Desk> Desks, List<WorkshopLauncher.DeskFolder> Dormant);
 
