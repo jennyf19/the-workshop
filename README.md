@@ -21,6 +21,7 @@ first built as an operator dashboard for a room of long-running agents.
   guard against the failure mode the system card names — capable model,
   user-assigned goal, reckless means.
 - **`docs/`** — the theory and the product case:
+  - `getting-started.md` — **new here? a 2-minute walkthrough of the simple version, with screenshots**
   - `why-use-this.md` — the Fable 5 hook: the model wants the whole job; the
     Workshop is how you let it without losing the ability to check the work
   - `prfaq.md` — the working-backwards press release + FAQ
@@ -41,6 +42,10 @@ dotnet run
 
 then open the URL it prints (defaults to a localhost port). it reads your live
 desks straight from `~/.copilot/session-state`.
+
+**New to it?** [`docs/getting-started.md`](docs/getting-started.md) is a short
+walkthrough — run it, make a workshop, open a desk, read the board — with
+screenshots and when-to-use-it guidelines.
 
 ### or run it from the tray (Windows)
 

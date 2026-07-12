@@ -6,8 +6,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-var sessionRoot = Path.Combine(
-    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".copilot", "session-state");
+// The Copilot session-state root and the workshops base dir default to the
+// real locations, but both can be pointed elsewhere via environment variables
+// (WORKSHOP_SESSION_ROOT / WORKSHOP_DIR) — used to run an isolated demo
+// instance with throwaway, fake-named data (e.g. for docs screenshots).
+var sessionRoot = Environment.GetEnvironmentVariable("WORKSHOP_SESSION_ROOT") is { Length: > 0 } envRoot
+    ? envRoot
+    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".copilot", "session-state");
 var usageCache = Path.Combine(builder.Environment.ContentRootPath, "usage-cache.json");
 var deskNames = Path.Combine(builder.Environment.ContentRootPath, "desk-names.json");
 var resolvedPath = Path.Combine(builder.Environment.ContentRootPath, "handsup-resolved.json");
@@ -18,7 +23,9 @@ var deskAgents = new WorkshopRoom.Data.DeskAgentStore(deskAgentsPath);
 builder.Services.AddSingleton(deskAgents);
 builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath, closedPath, agents: deskAgents, alertsPath: alertsPath));
 
-var workshopsDir = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath;
+var workshopsDir = Environment.GetEnvironmentVariable("WORKSHOP_DIR") is { Length: > 0 } envWsDir
+    ? envWsDir
+    : (Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath);
 
 // Per-agent launch defaults. Agency is the only configurable agent today: it
 // launches (and resumes) wrapped with these MCPs/plugin/model/agent instead of
