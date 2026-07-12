@@ -26,7 +26,7 @@ dotnet run --project src/WorkshopRoom
 ```
 
 …or, on Windows, start the **tray launcher** — one thing to run. It starts the
-server hidden, drops a 🛠️ icon by the clock (click it to open, quit its menu to
+server hidden, drops a cairn icon by the clock (click it to open, quit its menu to
 stop everything):
 
 ```

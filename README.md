@@ -1,4 +1,4 @@
-# the workshop
+# <img src="src/WorkshopRoom/wwwroot/favicon.svg" width="28" align="top" alt="cairn" /> the workshop
 
 run a room of AI agents, not one at a time.
 
@@ -8,6 +8,17 @@ relaying it. you stop being the switchboard between your agents and start direct
 
 this repo is the productization home. it was extracted from the classroom where it was
 first built as an operator dashboard for a room of long-running agents.
+
+## the cairn
+
+the workshop's mark is a **cairn** — a small stack of balanced stones. hikers build
+them one rock at a time to mark a trail, so the next person through knows the way.
+that's the workshop: a room where many hands (desks) add to the same pile of work,
+and what's built persists and points the way for whoever comes next.
+
+it's also why the first file every desk reads is [`CAIRN.md`](CAIRN.md) — the
+operating disposition for how a desk stands at the bench: stop is a valid finish,
+never bluff, equal standing to disagree.
 
 ## what's here
 
@@ -36,7 +47,7 @@ first built as an operator dashboard for a room of long-running agents.
 ## run the app
 
 **Quickest (Windows):** run `Start.bat`. It builds, stages a copy to `.run\`,
-and launches the tray — a 🛠️ icon by the clock that runs the server hidden and
+and launches the tray — a cairn icon by the clock that runs the server hidden and
 opens the dashboard in your browser. Because the app runs from `.run\`, you can
 `dotnet build` / `dotnet test` while it's up.
 
@@ -61,7 +72,7 @@ screenshots and when-to-use-it guidelines.
 ### the tray, directly
 
 `src/WorkshopRoom.Tray/` is the notification-area launcher `Start.bat` uses. it
-runs the web server hidden, drops a 🛠️ icon by the clock, and opens the dashboard
+runs the web server hidden, drops a cairn icon by the clock, and opens the dashboard
 in your browser. click the icon (or its menu) to reopen it; quit from the menu
 and the server stops with it — a Job Object reaps the server even if the tray is
 killed, so nothing is left holding the port. to run it directly (unstaged):

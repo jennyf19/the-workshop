@@ -1,6 +1,6 @@
 @echo off
 REM Start.bat -- build the workshop and launch the system-tray app. No console
-REM is left running: the app lives as a hammer-and-wrench icon in the Windows
+REM is left running: the app lives as a cairn icon in the Windows
 REM notification area (click the ^ arrow near the clock if you don't see it).
 REM The tray starts the web server hidden, opens the dashboard in your browser,
 REM and its menu lets you Open or Exit.
@@ -59,7 +59,7 @@ REM src\WorkshopRoom\bin. Absolute path -- the tray's working dir differs.
 set "WORKSHOP_WEB_EXE=%~dp0%RUN_WEB%\WorkshopRoom.exe"
 
 echo.
-echo [3/3] Launching the workshop tray ^(look for the hammer-and-wrench icon near the clock^)...
+echo [3/3] Launching the workshop tray ^(look for the cairn icon near the clock^)...
 start "" "%TRAY_EXE%"
 
 popd
