@@ -7,8 +7,8 @@ namespace WorkshopRoom.Tray;
 
 /// <summary>
 /// Builds the notification-area icon at runtime so the project ships no binary
-/// .ico asset. A rounded dark-purple square with the hammer-and-wrench workshop
-/// mark (U+1F6E0) in white, rendered at 32x32 (Windows down-samples for the
+/// .ico asset. A rounded dark-purple square with the workshop's cairn mark —
+/// three stacked white stones — rendered at 32x32 (Windows down-samples for the
 /// 16px tray slot). Purple so it stands out among the usual tray icons.
 /// </summary>
 internal static class TrayIconFactory
@@ -30,15 +30,12 @@ internal static class TrayIconFactory
             g.FillPath(bg, path);
 
             using var fg = new SolidBrush(Color.White);
-            using var font = new Font("Segoe UI Emoji", 18f, FontStyle.Regular, GraphicsUnit.Pixel);
-            using var sf = new StringFormat
-            {
-                Alignment = StringAlignment.Center,
-                LineAlignment = StringAlignment.Center,
-            };
-            // Hammer-and-wrench (U+1F6E0). GDI+ renders it as a crisp white
-            // monochrome glyph on the accent square.
-            g.DrawString("\U0001F6E0", font, fg, new RectangleF(0, 0, 32, 32), sf);
+            // The cairn — three stacked stones (matches favicon.svg and the h1
+            // mark). GDI+ FillEllipse takes the bounding box (x, y, w, h);
+            // these are the SVG ellipses (cx,cy,rx,ry) converted to boxes.
+            g.FillEllipse(fg, 6.0f, 21.6f, 20.0f, 6.8f);   // bottom
+            g.FillEllipse(fg, 9.6f, 14.1f, 14.4f, 6.2f);   // middle
+            g.FillEllipse(fg, 10.7f, 7.1f, 9.2f, 5.4f);    // top
         }
 
         var hicon = bmp.GetHicon();

@@ -4,6 +4,7 @@
     --muted: #8b8d93;
     --line: #2a2d35;
     --accent: #5da4ff;
+    --mark: #8b5cf6;
     --card: #181b22;
     --mono: ui-monospace, "Cascadia Code", "Consolas", monospace;
     --good: #34d399;
@@ -23,6 +24,7 @@
     --muted: #5b616e;
     --line: #d3d7de;
     --accent: #2563eb;
+    --mark: #6d28d9;
     --card: #f6f7f9;
     --good: #0f8a4c;
     --warn: #a86616;
@@ -53,7 +55,8 @@ a:hover { text-decoration: underline; }
 /* page head */
 .room-head { display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
 h1 { font-size: 1.5rem; margin: 0; }
-.room-head h1 .mark { font-size: 0.9em; }
+.room-head h1 .mark { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.17em; color: var(--mark); }
+.room-head h1 .mark svg { width: 100%; height: 100%; display: block; }
 .room-head .artifact { color: var(--muted); }
 .room-head .artifact strong { color: var(--fg); }
 .room-head .updated { margin-left: auto; color: var(--muted); font-size: 0.8rem; font-family: var(--mono); }
