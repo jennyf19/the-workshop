@@ -111,6 +111,14 @@ h1 { font-size: 1.5rem; margin: 0; }
 .step-result .warn { color: var(--warn); }
 .link-btn.danger { color: var(--warn); }
 .link-btn.danger:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+/* icon-only buttons for the repeated row/chip actions (console, close, start,
+   reopen, restore) — familiar glyphs; every one carries a title + aria-label. */
+.icon-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.95rem; line-height: 1; padding: 0 0.2rem; font-family: var(--mono); vertical-align: middle; }
+.icon-btn:hover { color: var(--fg); }
+.icon-btn:disabled { color: var(--muted); cursor: default; }
+.icon-btn.danger { color: var(--muted); }
+.icon-btn.danger:hover { color: var(--bad); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .nd-input.wide { width: 260px; }
 .chip { background: var(--bg); border: 1px solid var(--line); color: var(--fg); border-radius: 999px; padding: 0.28rem 0.7rem; font-size: 0.78rem; cursor: pointer; font-family: var(--mono); }
 .chip:hover { border-color: var(--accent); }
@@ -171,8 +179,6 @@ h1 { font-size: 1.5rem; margin: 0; }
 .agent-tag { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.4px; padding: 0.05rem 0.35rem; border-radius: 8px; background: rgba(93,164,255,0.16); color: var(--accent); font-weight: 600; vertical-align: middle; margin-left: 0.4rem; }
 .link-btn.graduate { color: var(--good); font-size: 0.72rem; margin-left: 0.5rem; }
 .link-btn.graduate:hover { text-decoration: underline; }
-.link-btn.archive-btn { color: var(--muted); font-size: 0.72rem; margin-left: 0.5rem; }
-.link-btn.archive-btn:hover { color: var(--warn); text-decoration: underline; }
 .archived-label { font-weight: 600; color: var(--muted); }
 .step.sub { margin-top: -0.3rem; padding-left: 1.7rem; opacity: 0.92; }
 .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
