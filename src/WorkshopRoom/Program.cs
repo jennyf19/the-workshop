@@ -13,12 +13,33 @@ builder.Services.AddRazorComponents()
 var sessionRoot = Environment.GetEnvironmentVariable("WORKSHOP_SESSION_ROOT") is { Length: > 0 } envRoot
     ? envRoot
     : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".copilot", "session-state");
-var usageCache = Path.Combine(builder.Environment.ContentRootPath, "usage-cache.json");
-var deskNames = Path.Combine(builder.Environment.ContentRootPath, "desk-names.json");
-var resolvedPath = Path.Combine(builder.Environment.ContentRootPath, "handsup-resolved.json");
-var closedPath = Path.Combine(builder.Environment.ContentRootPath, "closed-desks.json");
-var alertsPath = Path.Combine(builder.Environment.ContentRootPath, "alerts-dismissed.json");
-var deskAgentsPath = Path.Combine(builder.Environment.ContentRootPath, "desk-agents.json");
+// Operator state (closed/archived/renamed desks, dismissed alerts, launch
+// records, the usage cache) lives in a stable per-user folder so it persists no
+// matter where the exe runs — from src\bin, or from a staged .run\ copy
+// (Start.bat). Override with WORKSHOP_STATE_DIR. Files from the older
+// next-to-exe layout are migrated on first use so nothing resets.
+var stateDir = Environment.GetEnvironmentVariable("WORKSHOP_STATE_DIR") is { Length: > 0 } envState
+    ? envState
+    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "the-workshop");
+Directory.CreateDirectory(stateDir);
+var legacyStateDir = builder.Environment.ContentRootPath;
+string StatePath(string file)
+{
+    var dest = Path.Combine(stateDir, file);
+    var legacy = Path.Combine(legacyStateDir, file);
+    if (!File.Exists(dest) && File.Exists(legacy))
+    {
+        try { File.Copy(legacy, dest); } catch { /* best-effort migration */ }
+    }
+    return dest;
+}
+
+var usageCache = StatePath("usage-cache.json");
+var deskNames = StatePath("desk-names.json");
+var resolvedPath = StatePath("handsup-resolved.json");
+var closedPath = StatePath("closed-desks.json");
+var alertsPath = StatePath("alerts-dismissed.json");
+var deskAgentsPath = StatePath("desk-agents.json");
 var deskAgents = new WorkshopRoom.Data.DeskAgentStore(deskAgentsPath);
 builder.Services.AddSingleton(deskAgents);
 builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath, closedPath, agents: deskAgents, alertsPath: alertsPath));
@@ -50,7 +71,7 @@ var agentDefaults = new Dictionary<string, WorkshopRoom.Data.AgentLaunchSettings
 };
 builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { WorkshopsBaseDir = workshopsDir, AgentDefaults = agentDefaults });
 
-var archivedPath = Path.Combine(builder.Environment.ContentRootPath, "archived-workshops.json");
+var archivedPath = StatePath("archived-workshops.json");
 builder.Services.AddSingleton(new WorkshopRoom.Data.WorkshopArchive(archivedPath));
 
 var app = builder.Build();

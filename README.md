@@ -35,6 +35,17 @@ first built as an operator dashboard for a room of long-running agents.
 
 ## run the app
 
+**Quickest (Windows):** run `Start.bat`. It builds, stages a copy to `.run\`,
+and launches the tray — a 🛠️ icon by the clock that runs the server hidden and
+opens the dashboard in your browser. Because the app runs from `.run\`, you can
+`dotnet build` / `dotnet test` while it's up.
+
+```
+Start.bat
+```
+
+**Dev (live console):**
+
 ```
 cd src/WorkshopRoom
 dotnet run
@@ -47,13 +58,13 @@ desks straight from `~/.copilot/session-state`.
 walkthrough — run it, make a workshop, open a desk, read the board — with
 screenshots and when-to-use-it guidelines.
 
-### or run it from the tray (Windows)
+### the tray, directly
 
-`src/WorkshopRoom.Tray/` is a notification-area launcher — one thing you start.
-it runs the web server hidden, drops a **w** icon by the clock, and opens the
-dashboard in your browser. click the icon (or its menu) to reopen it; quit from
-the menu and the server stops with it — and a Job Object reaps the server even
-if the tray is killed, so nothing is left holding the port.
+`src/WorkshopRoom.Tray/` is the notification-area launcher `Start.bat` uses. it
+runs the web server hidden, drops a 🛠️ icon by the clock, and opens the dashboard
+in your browser. click the icon (or its menu) to reopen it; quit from the menu
+and the server stops with it — a Job Object reaps the server even if the tray is
+killed, so nothing is left holding the port. to run it directly (unstaged):
 
 ```
 dotnet run --project src/WorkshopRoom.Tray
