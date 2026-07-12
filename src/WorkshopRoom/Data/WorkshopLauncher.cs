@@ -11,6 +11,37 @@ public record WorkshopResult(bool Ok, string Message, string? Dir);
 // owner we briefly make it the active gh account, then always restore.
 public static class WorkshopLauncher
 {
+    // --- input safety -----------------------------------------------------
+    // A workshop/desk name must be a single ordinary folder segment: no path
+    // separators, no ':' (drive/ADS), no ".." traversal, and no character that
+    // is illegal in a filename. This stops an operator- or file-supplied name
+    // from escaping its base directory (path traversal) or smuggling shell
+    // metacharacters toward a terminal launch.
+    internal static bool IsSafeName(string? name)
+    {
+        name = (name ?? "").Trim();
+        if (name.Length == 0 || name is "." or "..") return false;
+        if (name.Contains("..")) return false;
+        if (name.IndexOfAny(new[] { '/', '\\', ':' }) >= 0) return false;
+        return name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+    }
+
+    // A desk name sanitized to a safe single segment; anything unsafe becomes
+    // "desk" so a desk folder (and the terminal opened in it) can never land
+    // outside its workshop's desks/ folder.
+    public static string SafeDeskName(string? name) =>
+        IsSafeName(name) ? name!.Trim() : "desk";
+
+    // A gh account login: GitHub usernames are ASCII alphanumerics and single
+    // hyphens. Validating it keeps 'owner' from injecting extra gh arguments.
+    internal static bool IsSafeAccount(string? owner)
+    {
+        owner = (owner ?? "").Trim();
+        return owner.Length > 0
+            && char.IsLetterOrDigit(owner[0])                        // no leading '-' (would read as a gh flag)
+            && owner.All(c => char.IsLetterOrDigit(c) || c == '-');
+    }
+
     // Creates a mini-workshop: a local folder with a workshop.md brief and a
     // desks/ folder. No GitHub repo, no git — the lightest on-ramp. Point an
     // agent at the folder to organize local work; it can graduate to a full
@@ -20,6 +51,7 @@ public static class WorkshopLauncher
         name = (name ?? "").Trim();
         if (name.Length == 0) return new(false, "name the mini-workshop", null);
         if (name.Any(char.IsWhiteSpace)) return new(false, "the name can't contain spaces", null);
+        if (!IsSafeName(name)) return new(false, "use a simple folder name (no /, \\, .. or special characters)", null);
         if (string.IsNullOrWhiteSpace(baseDir)) return new(false, "no base directory configured", null);
 
         var dir = Path.Combine(baseDir, name);
@@ -42,8 +74,10 @@ public static class WorkshopLauncher
         owner = (owner ?? "").Trim();
         name = (name ?? "").Trim();
         if (owner.Length == 0) return new(false, "pick an owner account", null);
+        if (!IsSafeAccount(owner)) return new(false, "that owner account name isn't valid", null);
         if (name.Length == 0) return new(false, "name the workshop", null);
         if (name.Any(char.IsWhiteSpace)) return new(false, "the name can't contain spaces", null);
+        if (!IsSafeName(name)) return new(false, "use a simple repo name (no /, \\, .. or special characters)", null);
         if (string.IsNullOrWhiteSpace(baseDir)) return new(false, "no base directory configured", null);
 
         var dir = Path.Combine(baseDir, name);
@@ -89,6 +123,7 @@ public static class WorkshopLauncher
         if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir)) return new(false, "no such folder", null);
         if (!IsMiniWorkshop(dir)) return new(false, "that isn't a mini-workshop (it already has a repo, or has no workshop.md)", null);
         if (owner.Length == 0) return new(false, "pick an owner account to graduate into", null);
+        if (!IsSafeAccount(owner)) return new(false, "that owner account name isn't valid", null);
 
         var name = Path.GetFileName(dir.TrimEnd('\\', '/'));
 
@@ -280,7 +315,7 @@ public static class WorkshopLauncher
     // desk folder.
     public static string PrepareDesk(string workshopDir, string deskName)
     {
-        var name = string.IsNullOrWhiteSpace(deskName) ? "desk" : deskName.Trim();
+        var name = SafeDeskName(deskName);
         var deskDir = Path.Combine(workshopDir, "desks", name);
         Directory.CreateDirectory(deskDir);
         Directory.CreateDirectory(Path.Combine(deskDir, ".signals"));

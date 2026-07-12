@@ -76,6 +76,24 @@ builder.Services.AddSingleton(new WorkshopRoom.Data.WorkshopArchive(archivedPath
 
 var app = builder.Build();
 
+// Refuse any request whose Host header isn't loopback. This is a localhost-only
+// operator tool that performs privileged local actions (creates GitHub repos,
+// spawns terminals), so a non-loopback Host is a DNS-rebinding attempt from a
+// site the operator visited — reject it before anything else runs. (AllowedHosts
+// config isn't reliably enforced under minimal hosting, so we check explicitly.)
+app.Use(async (context, next) =>
+{
+    var host = context.Request.Host.Host;
+    var loopback = string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+        || host is "127.0.0.1" or "::1" or "[::1]";
+    if (!loopback)
+    {
+        context.Response.StatusCode = 400;
+        return;
+    }
+    await next();
+});
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

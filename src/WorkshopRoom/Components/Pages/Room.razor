@@ -697,7 +697,7 @@
     private void OpenDeskIn(string dir, string name)
     {
         _deskHint = "";
-        if (string.IsNullOrWhiteSpace(name)) name = "desk";
+        name = WorkshopLauncher.SafeDeskName(name);              // single safe segment; blocks path traversal / shell metachars in the desk name
         WorkshopLauncher.PrepareDesk(dir, name);                 // give the desk its own space + journal + brief
         var orient = $"read ./desks/{name}/START-HERE.md, then get going";
         ConsoleLauncher.NewDesk(dir, name, orient, _deskAgent, Config.SettingsFor(_deskAgent));  // open at the workshop root, auto-oriented

@@ -7,6 +7,16 @@ namespace WorkshopRoom.Data;
 // (which is the session-state folder name) in the desk's working directory.
 public static class ConsoleLauncher
 {
+    // A directory is safe to hand to a terminal only when it truly exists — an
+    // injected pseudo-path such as  C:\" ; start calc  fails Directory.Exists so
+    // it never reaches the command line — and carries no double-quote to break
+    // out of the -d "..." argument. A real Windows path cannot contain a
+    // double-quote, so an existing directory is always safe to quote. This
+    // closes OS-command injection via a desk's cwd, read verbatim from
+    // workspace.yaml (an attacker-plantable file).
+    internal static bool SafeDir(string? d) =>
+        !string.IsNullOrWhiteSpace(d) && !d.Contains('"') && Directory.Exists(d);
+
     public static bool Open(string sessionId, string cwd, string agentKey = "copilot", AgentLaunchSettings? settings = null)
     {
         if (string.IsNullOrWhiteSpace(sessionId)) return false;
@@ -18,7 +28,7 @@ public static class ConsoleLauncher
         // Prefer Windows Terminal: opens a clean tab in the desk's folder.
         try
         {
-            var args = string.IsNullOrWhiteSpace(cwd) ? resume : $"-d \"{cwd}\" {resume}";
+            var args = SafeDir(cwd) ? $"-d \"{cwd}\" {resume}" : resume;
             Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = args, UseShellExecute = true });
             return true;
         }
@@ -28,7 +38,7 @@ public static class ConsoleLauncher
         try
         {
             var psi = new ProcessStartInfo { FileName = "pwsh.exe", Arguments = $"-NoExit -Command \"{resume}\"", UseShellExecute = true };
-            if (!string.IsNullOrWhiteSpace(cwd)) psi.WorkingDirectory = cwd;
+            if (SafeDir(cwd)) psi.WorkingDirectory = cwd;
             Process.Start(psi);
             return true;
         }
@@ -51,7 +61,8 @@ public static class ConsoleLauncher
 
         try
         {
-            Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{dir}\" {invoke}", UseShellExecute = true });
+            var wtArgs = SafeDir(dir) ? $"-d \"{dir}\" {invoke}" : invoke;
+            Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = wtArgs, UseShellExecute = true });
             return true;
         }
         catch { /* fall through */ }
