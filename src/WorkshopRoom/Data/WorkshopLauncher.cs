@@ -31,6 +31,7 @@ public static class WorkshopLauncher
             Directory.CreateDirectory(dir);
             Directory.CreateDirectory(Path.Combine(dir, "desks"));
             File.WriteAllText(Path.Combine(dir, "workshop.md"), MiniWorkshopBrief(name));
+            ScaffoldSkills(dir);
             return new(true, $"created mini-workshop \u201c{name}\u201d (local, no repo)", dir);
         }
         catch (Exception ex) { return new(false, $"couldn't create mini-workshop: {ex.Message}", dir); }
@@ -326,10 +327,12 @@ instructions, so get your bearings and then bring your read.
    `protocol.md`, `hands-up.md`. they may be at the root or in a subfolder, so
    search for them if they aren't right here.
 3. skim the shared work (the bench) to see where things stand.
-4. keep your running notes in `./desks/{name}/journal.md` — the operator reads
+4. check the room's shared **skills** in `skills/` — read `skills/README.md` and
+   reach for any that fit what you're doing. they're shared by every desk here.
+5. keep your running notes in `./desks/{name}/journal.md` — the operator reads
    this, so keep it honest and current.
-5. `./desks/{name}/brief.md` — what this desk is for.
-6. **emit signals** — after completing meaningful work, write a signal to
+6. `./desks/{name}/brief.md` — what this desk is for.
+7. **emit signals** — after completing meaningful work, write a signal to
    `./desks/{name}/.signals/`. see `.signals/PROTOCOL.md` for the format.
    this is how the dashboard knows what you're thinking and what you need.
 
@@ -348,6 +351,7 @@ prompted perfectly. get going.
         File.WriteAllText(Path.Combine(dir, "protocol.md"), Protocol);
         File.WriteAllText(Path.Combine(dir, "bench", ".gitkeep"), "");
         File.WriteAllText(Path.Combine(dir, "desks", ".gitkeep"), "");
+        ScaffoldSkills(dir);
     }
 
     // Like Scaffold, but only writes what's absent — used when graduating a
@@ -362,7 +366,59 @@ prompted perfectly. get going.
         WriteIfMissing(Path.Combine(dir, "protocol.md"), Protocol);
         WriteIfMissing(Path.Combine(dir, "bench", ".gitkeep"), "");
         WriteIfMissing(Path.Combine(dir, "desks", ".gitkeep"), "");
+        ScaffoldSkills(dir);
     }
+
+    // The room's shared skills folder — committed with the workshop so every
+    // desk can use it. CLI-agnostic: a skill is a folder with a SKILL.md a desk
+    // reads and follows (see the folder's README). Idempotent.
+    private static void ScaffoldSkills(string dir)
+    {
+        Directory.CreateDirectory(Path.Combine(dir, "skills", "example-skill"));
+        WriteIfMissing(Path.Combine(dir, "skills", "README.md"), SkillsReadme);
+        WriteIfMissing(Path.Combine(dir, "skills", "example-skill", "SKILL.md"), ExampleSkill);
+    }
+
+    private const string SkillsReadme =
+@"# shared skills
+
+the room's shared skills. **every desk in this workshop can use these** — they
+are committed with the workshop, so they're shared across desks and versioned
+with the work.
+
+a skill is a folder with a `SKILL.md` that says *when* to reach for it and *how*
+to run it:
+
+```
+skills/
+  review-pr/
+    SKILL.md
+  triage-issue/
+    SKILL.md
+```
+
+to add one: make a folder, drop a `SKILL.md` in it, commit.
+to use one: any desk reads the relevant `SKILL.md` and follows it — CLI-agnostic,
+so it works whether the desk runs Copilot, Agency, or Claude.
+
+see `example-skill/SKILL.md` for the shape, then make it real or delete it.
+";
+
+    private const string ExampleSkill =
+@"# example skill
+
+> this is a template — replace it with a real skill, or delete this folder.
+
+**when to use:** the trigger — the situation where a desk should reach for this.
+
+**how:** concrete steps. reference repo paths, commands, or MCP tools to use.
+
+1. ...
+2. ...
+3. ...
+
+**done when:** the check that says it worked.
+";
 
     private static (bool ok, string output) InitAndPush(string dir, string owner, string name)
     {
@@ -419,6 +475,7 @@ a workshop — a room of long-running AI agents (desks) sharing one bench.
 
 - `bench/` — the shared, append-only artifact the desks work on
 - `desks/` — one folder per desk (its journal and memory)
+- `skills/` — shared skills every desk can use (read `skills/README.md`)
 - `hands-up.md` — decisions the room surfaces to the operator
 - `protocol.md` — how desks take turns and disagree
 - `CAIRN.md` — the operating disposition each desk reads first
@@ -439,6 +496,8 @@ agent at it and go.
   work tidy right here.
 - when you finish a piece of work, leave a short note — in this file or a dated
   file under `desks/` — so the next session picks up where you left off.
+- the room's shared **skills** live in `skills/` — read `skills/README.md` and
+  use any that fit. add your own as you go.
 - ask before anything destructive. leave it better marked than you found it.
 
 ## desks

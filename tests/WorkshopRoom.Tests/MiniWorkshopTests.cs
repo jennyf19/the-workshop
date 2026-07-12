@@ -27,6 +27,24 @@ public class MiniWorkshopTests
         finally { baseDir.Delete(recursive: true); }
     }
 
+    [Fact]
+    public void NewMiniWorkshop_scaffolds_a_shared_skills_folder()
+    {
+        var baseDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var result = WorkshopLauncher.NewMiniWorkshop("with-skills", baseDir.FullName);
+            result.Ok.Should().BeTrue(result.Message);
+            var dir = result.Dir!;
+
+            Directory.Exists(Path.Combine(dir, "skills")).Should().BeTrue();
+            File.Exists(Path.Combine(dir, "skills", "README.md")).Should().BeTrue();
+            File.Exists(Path.Combine(dir, "skills", "example-skill", "SKILL.md")).Should().BeTrue();
+            File.ReadAllText(Path.Combine(dir, "skills", "README.md")).Should().Contain("shared skills");
+        }
+        finally { baseDir.Delete(recursive: true); }
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
