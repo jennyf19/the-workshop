@@ -173,6 +173,10 @@ h1 { font-size: 1.5rem; margin: 0; }
 .ta-dismiss:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; opacity: 1; }
 
 /* workshop cards — grouped desk panels */
+/* Let each card size to its own content instead of stretching to match the
+   tallest in the row — so an empty/quiet workshop doesn't leave a big blank
+   card next to a busy one. */
+.grid.workshops { align-items: start; }
 .workshop-card { border-left: 3px solid var(--accent); }
 .workshop-card h2 { font-size: 0.95rem; letter-spacing: 0.3px; }
 .no-workshop { border-left-color: var(--muted); }
