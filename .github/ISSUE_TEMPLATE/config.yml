@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Docs and overview
+    url: https://jennyf19.github.io/agentic-devops/workshop/
+    about: The Workshop landing page and getting-started guide.

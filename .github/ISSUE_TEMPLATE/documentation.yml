@@ -1,0 +1,24 @@
+name: 📖 Documentation
+description: A gap, error, or improvement in the docs
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where?
+      description: Which doc or section (for example README or docs/getting-started.md).
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What's wrong or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix (optional)
+    validations:
+      required: false

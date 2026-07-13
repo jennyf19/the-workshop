@@ -1,0 +1,53 @@
+name: 🐞 Bug report
+description: Something isn't working as expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug! Please include enough detail for us to reproduce it.
+        Please don't paste secrets, tokens, or private repo/session names.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The exact steps.
+      placeholder: |
+        1. Run Start.bat
+        2. Open a desk in ...
+        3. Click ...
+        4. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, .NET version, and how you launched it.
+      placeholder: |
+        - OS: Windows 11
+        - .NET: 10.x
+        - Launched via: Start.bat (or dotnet run)
+        - Agent CLI: Copilot
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+    validations:
+      required: false
