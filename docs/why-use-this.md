@@ -45,7 +45,7 @@ pair of eyes that isn't yours.*
 | | What it gives you | What it structurally *can't* give you |
 |---|---|---|
 | **Bare CLI** (Claude Code, GHCP CLI, Cursor) | One very capable agent, your context, your tools | A second frame. It's *your* blind spots, faster. Give it more budget and it re-confirms what you both already think. |
-| **Sub-agents** (`Task` tool, background agents, FastContext) | Fan-out for *coverage*; cheap retrieval | Different priors. Every sub-agent inherits *the caller's question* — shaped by what the caller already thinks matters. Scales one frame's reach, not the number of frames. |
+| **Sub-agents** (`Task` tool, background agents) | Fan-out for *coverage*; cheap retrieval | Different priors. Every sub-agent inherits *the caller's question* — shaped by what the caller already thinks matters. Scales one frame's reach, not the number of frames. |
 | **Spec-first** (Spec Kit, plan-then-execute) | Decomposes the task into a spec → verifiable steps | Works against a frontier model's grain (it wants the whole job). And the spec is written by the same frame that'll miss what the spec misses — you can't spec your own blind spot. |
 | **Role-based squads** (AutoGen, CrewAI, "planner/coder/reviewer") | Pre-assigned roles, scripted handoffs | Roles ≠ frames. A "reviewer" role spawned fresh with no history reviews *what it's told to*. Scheduled disagreement; the interesting catches are the unscheduled ones. |
 | **The Workshop** | Long-running **desks** with their own memory/history; equal standing to say "wrong question"; shared append-only bench; you read hands-up, not transcripts | A cost win. It's not cheaper per-token — it's *checkable*. |

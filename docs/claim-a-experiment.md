@@ -1,21 +1,21 @@
 # Claim A — the structural miss rate (the Workshop's measurable claim)
 
-*2026-06-29. The Workshop's answer to "what's your 60%?"
-— prompted by [FastContext (MSR)](https://arxiv.org/abs/2606.14066)
-(−60% main-agent tokens) and the question of whether the room has a number of
-its own. Mechanism: `desk-vs-subagent.md`. Where it plugs in: `positioning.md`,
-`prfaq.md` ("how do I know the room is working?").*
+*2026-06-29. The Workshop's answer to "what's your number?" — the question of
+whether the room has a measurable claim of its own, distinct from the token
+savings a cheap retrieval sub-agent buys. Mechanism: `desk-vs-subagent.md`.
+Where it plugs in: `positioning.md`, `prfaq.md` ("how do I know the room is
+working?").*
 
 ---
 
 ## Why this claim, and not a cost claim
 
-FastContext owns the **cost** axis: it makes *finding* cheaper (−60% tokens) by
-delegating retrieval to a cheap sub-agent. If the Workshop tries to compete on
+A cheap retrieval sub-agent owns the **cost** axis: it makes *finding* cheaper
+by delegating retrieval to a small model. If the Workshop tries to compete on
 cost, it loses — a room of N desks is *more* expensive, not less.
 
-So the Workshop's number must live on the axis FastContext (and any sub-agent
-fan-out) **cannot** touch: **judgment**. Per `desk-vs-subagent.md`, a sub-agent
+So the Workshop's number must live on the axis a sub-agent fan-out **cannot**
+touch: **judgment**. Per `desk-vs-subagent.md`, a sub-agent
 fan-out scales *coverage within one frame* (it inherits the caller's question
 and blind spots); a room scales *judgment across frames* (each desk brings its
 own priors). The catch that comes from a different frame is not for sale at any
@@ -47,7 +47,7 @@ token budget. That is the thing to measure.
 
 **What would disprove Claim A:** if a single agent, given enough budget (passes
 / bigger model / fan-out), **converges to the room's catch set**, then the
-room's value is budgetary, not structural — and FastContext-style cheap scaling
+room's value is budgetary, not structural — and cheap sub-agent scaling
 within one agent would dominate. That convergence is the crux the experiment
 must genuinely try to produce. *If we cannot beat a well-funded single agent,
 the honest finding is that the room is a cost story, not a judgment story.*
@@ -59,7 +59,7 @@ the honest finding is that the room is a cost story, not a judgment story.*
 | **C1** | Single desk, one pass | one | baseline catch |
 | **C2a** | Single desk, N sequential passes | one (re-examined) | does *more looking* close the gap? |
 | **C2b** | Single desk, bigger model / larger context | one | does *more capability* close the gap? |
-| **C2c** | Single desk + sub-agent fan-out (FastContext-style) | one (sub-agents inherit it) | does *more coverage* close the gap? |
+| **C2c** | Single desk + sub-agent fan-out | one (sub-agents inherit it) | does *more coverage* close the gap? |
 | **C3** | The room — N desks, genuinely different histories, equal standing, converging | **many** | the judgment arm |
 
 **C2 is the load-bearing control.** Claim A only means something if C2 is funded
@@ -160,17 +160,17 @@ know now rather than after curating a corpus.
 fill `caught_room` and `frame`); the `c1`/`c2` columns can only be filled by an
 actual pilot run, not from memory.
 
-## The joint claim (positions the Workshop *with* FastContext, not against)
+## The joint claim (the Workshop *with* cheap retrieval, not against)
 
-FastContext's number (−60% tokens) and the Workshop's number (structural miss
-rate) compose:
+A cheap retrieval sub-agent's token savings and the Workshop's number (structural
+miss rate) compose:
 
-> A desk that uses a FastContext-style explorer catches the structurally-missed
-> issues **and** does its finding cheaply — *more confirmed catches per token*
-> than either a lone frontier agent or a lone cheap one.
+> A desk that uses a fast explorer catches the structurally-missed issues **and**
+> does its finding cheaply — *more confirmed catches per token* than either a
+> lone frontier agent or a lone cheap one.
 
 That is the full Yegge literacy — best outcome per spend — and it is the precise
-answer to the lab question *"why run 3 desks instead of 1 + a 4B explorer?"*:
+answer to the lab question *"why run 3 desks instead of 1 + a cheap explorer?"*:
 because 1 + an explorer is one frame, and one frame has a structural miss rate
 you cannot pay down.
 

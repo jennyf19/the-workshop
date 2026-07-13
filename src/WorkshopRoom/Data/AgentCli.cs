@@ -125,22 +125,10 @@ public static class AgentClis
     //     wrapper (default): agency copilot <config flags> --resume <id>
     //     gateway:           copilot --session-manager --mcp gateway --resume <id>
     //
-    // OPEN QUESTION (JM, issue #2): are the explicit --mcp flags interchangeable
-    // with Agency's internal "--mcp gateway" on resume — i.e. does a resumed
-    // Agency session re-derive its MCP set from the session record, or must the
-    // flags be re-passed?
-    //
-    // Checked against PRInbox (JM's own tool, origin/main 2026-07-01): it never
-    // programmatically resumes — every review is a fresh `agency copilot …`
-    // launch with a fresh --name, and any real resume is left to Copilot's
-    // interactive `--resume` picker. So neither shape below is battle-tested.
-    // Note the gateway shape is Agency's *own* relaunch form (copilot.rs
-    // handoff_relaunch_args), so it may in fact be the more correct default for
-    // reopening an existing Agency session; the wrapper shape bolts an external
-    // --resume onto the fresh-launch form and could fight Agency's internal
-    // --resume <uuid>. Until that's confirmed the room defaults to the wrapper
-    // (self-contained, re-passes config) and exposes the gateway shape via
-    // WORKSHOP_AGENCY_RESUME=gateway, so the maintainer can flip and test it
+    // Which shape a resumed session actually needs — do the --mcp flags get
+    // re-derived from the session record, or must they be re-passed? — isn't
+    // pinned down, so the room defaults to the self-contained wrapper and
+    // exposes the gateway shape via WORKSHOP_AGENCY_RESUME=gateway to switch
     // without a code change.
     public static string BuildResume(AgentCli agent, string sessionId, AgentLaunchSettings? settings)
     {

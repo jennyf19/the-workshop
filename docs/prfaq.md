@@ -48,7 +48,7 @@ the next one starts ahead.
 > *"The interesting catches were the ones nobody was assigned to make — the ones a single careful
 > pass walks right past. And a human read one summary, not three transcripts."* — pilot lead
 
-**Availability.** Piloting now with internal teams; broader availability to follow.
+**Availability.** Piloting now with early users; broader availability to follow.
 
 ---
 
