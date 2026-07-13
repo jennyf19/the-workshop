@@ -106,10 +106,3 @@ it was built to give frontier models what they need. it turned out to also be wh
 work got better. those aren't separate findings.
 
 — jenny
-
-## status
-
-incubating, private. the app builds and runs; the measurable claim is designed down to the one
-experiment that proves it (a budget-controlled single-agent run, not archive-mining). when the
-narrative is ready, the public write-up lands in `jennyf19/agentic-devops`; the app ships from
-here.
