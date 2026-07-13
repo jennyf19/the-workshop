@@ -19,15 +19,22 @@ the CLI; you don't need a room for a single shot.
 
 ## 1. Run it
 
-Either run the web app directly:
+**Quickest (Windows):** run **`Start.bat`** from the repo root — one thing to
+run. It builds, launches the tray (a cairn icon by the clock), starts the server
+hidden, and opens the dashboard in your browser:
+
+```
+Start.bat
+```
+
+Prefer a live console instead? Run the web app directly:
 
 ```
 dotnet run --project src/WorkshopRoom
 ```
 
-…or, on Windows, start the **tray launcher** — one thing to run. It starts the
-server hidden, drops a cairn icon by the clock (click it to open, quit its menu to
-stop everything):
+…or start the **tray launcher** on its own (click the cairn icon to open, quit
+its menu to stop everything):
 
 ```
 dotnet run --project src/WorkshopRoom.Tray

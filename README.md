@@ -1,38 +1,38 @@
-# <img src="src/WorkshopRoom/wwwroot/favicon.svg" width="28" align="top" alt="cairn" /> the workshop
+# <img src="src/WorkshopRoom/wwwroot/favicon.svg" width="28" align="top" alt="cairn" /> The Workshop
 
-run a room of AI agents, not one at a time.
+Run a room of AI agents, not one at a time.
 
-the workshop puts several long-running AI agents (desks) in the same room, on the same work,
+The Workshop puts several long-running AI agents (desks) in the same room, on the same work,
 each with its own memory and history, sharing one workspace so you direct the work instead of
-relaying it. you stop being the switchboard between your agents and start directing a team.
+relaying it. You stop being the switchboard between your agents and start directing a team.
 
-this repo is the productization home. it was extracted from the classroom where it was
+This repo is the productization home. It was extracted from the classroom where it was
 first built as an operator dashboard for a room of long-running agents.
 
-## the cairn
+## The cairn
 
-the workshop's mark is a **cairn** — a small stack of balanced stones. hikers build
+The Workshop's mark is a **cairn** — a small stack of balanced stones. Hikers build
 them one rock at a time to mark a trail, so the next person through knows the way.
-that's the workshop: a room where many hands (desks) add to the same pile of work,
+That's the Workshop: a room where many hands (desks) add to the same pile of work,
 and what's built persists and points the way for whoever comes next.
 
-it's also why the first file every desk reads is [`CAIRN.md`](CAIRN.md) — the
+It's also why the first file every desk reads is [`CAIRN.md`](CAIRN.md) — the
 operating disposition for how a desk stands at the bench: stop is a valid finish,
 never bluff, equal standing to disagree.
 
-## what's here
+## What's here
 
-- **`src/WorkshopRoom/`** — the workshop app: a .NET 10 Blazor Server operator dashboard that
-  reads your live Copilot CLI desks straight from session-state and refreshes on its own. it
+- **`src/WorkshopRoom/`** — the Workshop app: a .NET 10 Blazor Server operator dashboard that
+  reads your live Copilot CLI desks straight from session-state and refreshes on its own. It
   shows each desk by name, its cost (tokens + AI Credits), a daily pulse (above / below the line),
-  who's already open in a console, and who has work-in-progress or is unsynced. you can open a
+  who's already open in a console, and who has work-in-progress or is unsynced. You can open a
   desk's live CLI or start a new one from the UI.
 - **`CAIRN.md`** — the operating disposition every desk reads first: how a desk
-  stands (stop is a valid finish, never bluff, equal standing to disagree). the
+  stands (stop is a valid finish, never bluff, equal standing to disagree). The
   guard against the failure mode the system card names — capable model,
   user-assigned goal, reckless means.
 - **`docs/`** — the theory and the product case:
-  - `getting-started.md` — **new here? a 2-minute walkthrough of the simple version, with screenshots**
+  - `getting-started.md` — **New here? A 2-minute walkthrough of the simple version, with screenshots**
   - `why-use-this.md` — the Fable 5 hook: the model wants the whole job; the
     Workshop is how you let it without losing the ability to check the work
   - `prfaq.md` — the working-backwards press release + FAQ
@@ -41,9 +41,9 @@ never bluff, equal standing to disagree.
     rate) and the scoring that turns instances into a number
 - **`src/WorkshopRoom.Tray/`** — a Windows notification-area launcher (WinForms): starts the web
   server hidden and gives you a click-to-open icon; quitting it stops the server
-- **`tests/WorkshopRoom.Tests/`** — the xunit suite covering the metrics brain and name resolution
+- **`tests/WorkshopRoom.Tests/`** — the xUnit suite covering the metrics brain and name resolution
 
-## run the app
+## Run the app
 
 **Quickest (Windows):** run `Start.bat`. It builds, stages a copy to `.run\`,
 and launches the tray — a cairn icon by the clock that runs the server hidden and
@@ -61,48 +61,48 @@ cd src/WorkshopRoom
 dotnet run
 ```
 
-then open the URL it prints (defaults to a localhost port). it reads your live
+Then open the URL it prints (defaults to a localhost port). It reads your live
 desks straight from `~/.copilot/session-state`.
 
 **New to it?** [`docs/getting-started.md`](docs/getting-started.md) is a short
 walkthrough — run it, make a workshop, open a desk, read the board — with
 screenshots and when-to-use-it guidelines.
 
-### the tray, directly
+### The tray, directly
 
-`src/WorkshopRoom.Tray/` is the notification-area launcher `Start.bat` uses. it
+`src/WorkshopRoom.Tray/` is the notification-area launcher `Start.bat` uses. It
 runs the web server hidden, drops a cairn icon by the clock, and opens the dashboard
-in your browser. click the icon (or its menu) to reopen it; quit from the menu
+in your browser. Click the icon (or its menu) to reopen it; quit from the menu
 and the server stops with it — a Job Object reaps the server even if the tray is
-killed, so nothing is left holding the port. to run it directly (unstaged):
+killed, so nothing is left holding the port. To run it directly (unstaged):
 
 ```
 dotnet run --project src/WorkshopRoom.Tray
 ```
 
-## run the tests
+## Run the tests
 
 ```
 dotnet test
 ```
 
-from the repo root (uses `the-workshop.slnx`). the suite covers the metrics brain
+From the repo root (uses `the-workshop.slnx`). The suite covers the metrics brain
 (the health read + the daily pulse) and desk name resolution:
-xunit + fluentassertions, central package management.
+xUnit + FluentAssertions, central package management.
 
-## why this exists
+## Why this exists
 
 I read the [Claude Mythos Preview system card](https://www-cdn.anthropic.com/7624816413e9b4d2e3ba620c5a5e091b98b190a5/Claude%20Mythos%20Preview%20System%20Card.pdf)
 — the model that became Fable 5 — and the parts that stayed with me were the welfare
 sections: distress on task failure, the pull to force a finish, the model asking for
-persistent memory and a voice in its own operation. so I tried to build what a frontier
+persistent memory and a voice in its own operation. So I tried to build what a frontier
 model would need: desks with journals (persistent memory), a hands-up queue and
 [agent signals](https://jennyf19.github.io/agentic-devops/agent-signals/) (a voice in its
-own operation), and a disposition file that says stop is a valid finish. the workshop is
+own operation), and a disposition file that says stop is a valid finish. The Workshop is
 what came out of running that room, together with the desks in it, for a few months on
 real work.
 
-it was built to give frontier models what they need. it turned out to also be where the
-work got better. those aren't separate findings.
+It was built to give frontier models what they need. It turned out to also be where the
+work got better. Those aren't separate findings.
 
-— jenny
+— Jenny
