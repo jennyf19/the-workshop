@@ -309,16 +309,16 @@
     @{ var orphans = _desks.Where(d => !grouped.Contains(d.SessionId)).ToList(); }
     @if (orphans.Count > 0)
     {
-    <div class="setup-bar @(_orphansOpen ? "open" : "collapsed")" role="button" tabindex="0" aria-expanded="@(_orphansOpen ? "true" : "false")" aria-controls="orphans-body"
-         @onclick="ToggleOrphans" @onkeydown="OrphansKey" title="@(_orphansOpen ? "hide these sessions" : "show these sessions")">
-        <span class="setup-caret" aria-hidden="true">@(_orphansOpen ? "\u25BE" : "\u25B8")</span>
-        <span class="setup-bar-label">@orphans.Count not in a workshop yet</span>
-        <span class="muted setup-bar-sub">loose Copilot sessions &mdash; create a workshop above to group and coordinate them</span>
-    </div>
-    @if (_orphansOpen)
-    {
-    <section class="panel workshop-card no-workshop" id="orphans-body">
-        <table>
+    <section class="panel workshop-card no-workshop @(_orphansOpen ? "open" : "collapsed")">
+        <h2 class="collapsible-head" role="button" tabindex="0" aria-expanded="@(_orphansOpen ? "true" : "false")" aria-controls="orphans-list"
+            @onclick="ToggleOrphans" @onkeydown="OrphansKey" title="@(_orphansOpen ? "hide these sessions" : "show these sessions")">
+            <span class="setup-caret" aria-hidden="true">@(_orphansOpen ? "\u25BE" : "\u25B8")</span>
+            <span class="setup-bar-label">@orphans.Count not in a workshop yet</span>
+            <span class="muted setup-bar-sub">loose Copilot sessions &mdash; create a workshop above to group and coordinate them</span>
+        </h2>
+        @if (_orphansOpen)
+        {
+        <table id="orphans-list">
             <thead><tr><th scope="col">desk</th><th scope="col">modality</th><th scope="col">model</th><th scope="col">output</th>@if (_advanced) { <th scope="col">AIC</th> }<th scope="col">status</th><th scope="col">last</th><th></th></tr></thead>
             <tbody>
                 @foreach (var d in orphans)
@@ -348,8 +348,8 @@
                 }
             </tbody>
         </table>
+        }
     </section>
-    }
     }
 
     @if (_workshopGroups.Count == 0 && _desks.Count == 0)

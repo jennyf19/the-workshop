@@ -181,6 +181,12 @@ h1 { font-size: 1.5rem; margin: 0; }
 .workshop-card h2 { font-size: 0.95rem; letter-spacing: 0.3px; }
 .no-workshop { border-left-color: var(--muted); }
 .no-workshop-hint { font-size: 0.78rem; margin: -0.2rem 0 0.5rem; }
+/* the "not in a workshop yet" card is a self-contained collapsible pane — its
+   loose-desk table nests inside and toggles in place via the header caret. */
+.workshop-card h2.collapsible-head { cursor: pointer; user-select: none; display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.workshop-card h2.collapsible-head:hover .setup-bar-label { color: var(--accent); }
+.workshop-card h2.collapsible-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.no-workshop.collapsed h2.collapsible-head { margin-bottom: 0; }
 .mini-badge { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.4px; padding: 0.1rem 0.4rem; border-radius: 8px; background: rgba(52,211,153,0.15); color: var(--good); font-weight: 600; vertical-align: middle; }
 .mini-tag { font-size: 0.6rem; text-transform: uppercase; color: var(--good); opacity: 0.85; }
 .agent-tag { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.4px; padding: 0.05rem 0.35rem; border-radius: 8px; background: rgba(93,164,255,0.16); color: var(--accent); font-weight: 600; vertical-align: middle; margin-left: 0.4rem; }
