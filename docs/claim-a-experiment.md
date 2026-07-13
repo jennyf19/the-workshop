@@ -3,7 +3,7 @@
 *2026-06-29. The Workshop's answer to "what's your number?" — the question of
 whether the room has a measurable claim of its own, distinct from the token
 savings a cheap retrieval sub-agent buys. Mechanism: `desk-vs-subagent.md`.
-Where it plugs in: `positioning.md`, `prfaq.md` ("how do I know the room is
+Where it plugs in: `prfaq.md` ("how do I know the room is
 working?").*
 
 ---

@@ -36,7 +36,6 @@ never bluff, equal standing to disagree.
   - `why-use-this.md` — the Fable 5 hook: the model wants the whole job; the
     Workshop is how you let it without losing the ability to check the work
   - `prfaq.md` — the working-backwards press release + FAQ
-  - `positioning.md` — why this is what Satya and Yegge are both pointing at
   - `desk-vs-subagent.md` — the conceptual core: a desk has its own frame; a sub-agent inherits yours
   - `claim-a-experiment.md` + `claim-a-findings.csv` — the measurable claim (the structural miss
     rate) and the scoring that turns instances into a number

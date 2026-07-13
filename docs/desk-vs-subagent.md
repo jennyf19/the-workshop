@@ -95,7 +95,6 @@ Sub-agents are orthogonal to it.
 
 ---
 
-**See also:** `positioning.md` (retrieval as route-to-cheapest-capable);
-`prfaq.md` "isn't this just multi-agent
+**See also:** `prfaq.md` "isn't this just multi-agent
 orchestration?" (this doc is the longer answer to that FAQ);
 `claim-a-experiment.md` (the measurable version — structural miss rate).
