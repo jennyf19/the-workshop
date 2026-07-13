@@ -5,6 +5,7 @@
 @inject RoomConfig Config
 @inject WorkshopArchive Archive
 @inject DeskAgentStore DeskAgents
+@inject WorkshopsDirStore WorkshopsDir
 @inject IJSRuntime JS
 
 <PageTitle>the workshop</PageTitle>
@@ -97,6 +98,28 @@
 @if (_setupOpen)
 {
 <div class="setup" id="setup-body">
+    <div class="step">
+        <span class="step-num" title="where the board looks for workshops">0</span>
+        <span class="nd-label">workshops folder:</span>
+        @if (Config.WorkshopsDirLocked)
+        {
+            <span class="nd-label muted" title="@Config.WorkshopsBaseDir">@Config.WorkshopsBaseDir</span>
+            <span class="nd-hint">set by the WORKSHOP_DIR environment variable</span>
+        }
+        else
+        {
+            <input class="nd-input wide" @bind="_baseDirInput" @bind:event="oninput" @onkeydown="BaseDirKey" @onfocus="() => _typing = true" @onblur="() => _typing = false" placeholder="the folder your repos live in, e.g. C:\Users\you\source" autocomplete="off" spellcheck="false" aria-label="workshops folder the board scans" />
+            <button class="btn" @onclick="SaveBaseDir">use this folder</button>
+            @if (!string.IsNullOrEmpty(_baseDirHint))
+            {
+                <span class="nd-hint">@_baseDirHint</span>
+            }
+            else
+            {
+                <span class="nd-hint">the board scans here for workshops &middot; now: <code>@Config.WorkshopsBaseDir</code></span>
+            }
+        }
+    </div>
     <div class="step">
         <span class="step-num">1</span>
         <span class="nd-label">create a workshop:</span>
@@ -355,7 +378,7 @@
     @if (_workshopGroups.Count == 0 && _desks.Count == 0)
     {
     <section class="panel">
-        <div class="empty">nothing here yet &mdash; create a workshop above, or a local mini-workshop (no repo needed), then open a desk in it. your open Copilot sessions show up here too.</div>
+        <div class="empty">nothing here yet &mdash; the board is scanning <code>@Config.WorkshopsBaseDir</code> for workshops and finding none. point it at the folder your repos live in (the <strong>workshops folder</strong> box under &ldquo;new workshop or desk&rdquo;), or create a workshop / mini-workshop, then open a desk. your open Copilot sessions show up here too.</div>
     </section>
     }
 
@@ -495,6 +518,8 @@
     private bool _isLight;    // reflects the client theme (synced after first render)
     private string _newWorkshopName = "";
     private string _newMiniName = "";
+    private string _baseDirInput = "";
+    private string _baseDirHint = "";
     private string _workshopOwner = "";
     private string _setupMessage = "";
     private string? _setupDir;
@@ -509,6 +534,7 @@
         // Clean first-run: the setup is open when there's nothing yet, and
         // collapsed once you already have a workshop (it's just noise then).
         _setupOpen = _workshops.Count == 0;
+        _baseDirInput = Config.WorkshopsBaseDir;
         _ghLogins = GhAuth.DiscoverLogins().ToList();
         _workshopOwner = _ghLogins.FirstOrDefault(l => l.IsActive)?.Login ?? _ghLogins.FirstOrDefault()?.Login ?? "";
         _agents = AgentClis.Available();
@@ -709,6 +735,31 @@
     private void SetupKey(KeyboardEventArgs e)
     {
         if (e.Key is "Enter" or " " or "Spacebar") _setupOpen = !_setupOpen;
+    }
+
+    // Point the board at a different folder to scan for workshops, and remember
+    // it across restarts (WorkshopsDirStore). The folder must exist. When
+    // WORKSHOP_DIR is set it locks the base dir, so this input isn't shown.
+    private void SaveBaseDir()
+    {
+        var dir = (_baseDirInput ?? "").Trim();
+        if (dir.Length == 0) { _baseDirHint = "type a folder path first"; return; }
+        try { dir = System.IO.Path.GetFullPath(dir); }
+        catch { _baseDirHint = "that doesn't look like a valid folder path"; return; }
+        if (!System.IO.Directory.Exists(dir)) { _baseDirHint = $"no folder at {dir}"; return; }
+        Config.WorkshopsBaseDir = dir;
+        WorkshopsDir.Save(dir);
+        _baseDirInput = dir;
+        Load();
+        var n = _workshops.Count;
+        _baseDirHint = n > 0
+            ? $"scanning {dir} \u2014 found {n} workshop{(n == 1 ? "" : "s")}"
+            : $"scanning {dir} \u2014 no workshops here yet";
+    }
+
+    private void BaseDirKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") SaveBaseDir();
     }
 
     private void ToggleOrphans() => _orphansOpen = !_orphansOpen;

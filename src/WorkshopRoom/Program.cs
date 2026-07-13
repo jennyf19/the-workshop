@@ -44,9 +44,27 @@ var deskAgents = new WorkshopRoom.Data.DeskAgentStore(deskAgentsPath);
 builder.Services.AddSingleton(deskAgents);
 builder.Services.AddSingleton(new WorkshopRoom.Data.SessionStoreReader(sessionRoot, usageCache, deskNames, resolvedPath, closedPath, agents: deskAgents, alertsPath: alertsPath));
 
-var workshopsDir = Environment.GetEnvironmentVariable("WORKSHOP_DIR") is { Length: > 0 } envWsDir
-    ? envWsDir
-    : (Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath);
+// The workshops base dir: where the board scans for workshops (and where a new
+// workshop repo is cloned). Resolution: WORKSHOP_DIR env (authoritative — it
+// locks the UI picker) > the operator's persisted choice > the drive root as a
+// last-resort fallback. The drive-root fallback almost never holds
+// workshop-marked folders, so a bare run would otherwise show an empty board;
+// the UI lets the operator point this at where their repos actually live.
+var workshopsDirStore = new WorkshopRoom.Data.WorkshopsDirStore(Path.Combine(stateDir, "workshops-dir.json"));
+builder.Services.AddSingleton(workshopsDirStore);
+var envWsDir = Environment.GetEnvironmentVariable("WORKSHOP_DIR");
+var workshopsDirLocked = !string.IsNullOrWhiteSpace(envWsDir);
+var driveRoot = Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath;
+string workshopsDir;
+if (workshopsDirLocked)
+{
+    workshopsDir = envWsDir!.Trim();
+}
+else
+{
+    var saved = workshopsDirStore.Get();
+    workshopsDir = !string.IsNullOrWhiteSpace(saved) && Directory.Exists(saved) ? saved! : driveRoot;
+}
 
 // Per-agent launch defaults. Agency is the only configurable agent today: it
 // launches (and resumes) wrapped with whatever MCPs/plugin/model/agent you
@@ -71,7 +89,7 @@ var agentDefaults = new Dictionary<string, WorkshopRoom.Data.AgentLaunchSettings
         Agent: AgencyOpt("WORKSHOP_AGENCY_AGENT", "Agent", ""),
         ResumeMode: AgencyOpt("WORKSHOP_AGENCY_RESUME", "ResumeMode", "wrapper")),
 };
-builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { WorkshopsBaseDir = workshopsDir, AgentDefaults = agentDefaults });
+builder.Services.AddSingleton(new WorkshopRoom.Data.RoomConfig { WorkshopsBaseDir = workshopsDir, WorkshopsDirLocked = workshopsDirLocked, AgentDefaults = agentDefaults });
 
 var archivedPath = StatePath("archived-workshops.json");
 builder.Services.AddSingleton(new WorkshopRoom.Data.WorkshopArchive(archivedPath));
