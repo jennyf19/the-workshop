@@ -1,10 +1,10 @@
 # <img src="src/WorkshopRoom/wwwroot/favicon.svg" width="28" align="top" alt="cairn" /> The Workshop
 
-Run a room of AI agents, not one at a time.
+Stop being the switchboard between your AI agents — direct a team.
 
 The Workshop puts several long-running AI agents (desks) in the same room, on the same work,
 each with its own memory and history, sharing one workspace so you direct the work instead of
-relaying it. You stop being the switchboard between your agents and start directing a team.
+relaying it.
 
 This repo is the productization home. It was extracted from the classroom where it was
 first built as an operator dashboard for a room of long-running agents.
