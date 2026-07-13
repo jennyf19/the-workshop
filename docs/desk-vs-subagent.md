@@ -2,7 +2,7 @@
 
 *The conceptual core: what makes a desk different from a sub-agent, and why
 that difference is where the Workshop's value lives. Prompted by
-[microsoft/fastcontext](https://github.com/microsoft/fastcontext) — a very
+[FastContext (MSR)](https://arxiv.org/abs/2606.14066) — a very
 good sub-agent — and the question "do you still need the room?"*
 
 ---
@@ -45,7 +45,7 @@ any budget.
 
 ## Where FastContext sits
 
-[FastContext](https://github.com/microsoft/fastcontext) (MSR, arXiv 2606.14066,
+[FastContext](https://arxiv.org/abs/2606.14066) (MSR, arXiv 2606.14066,
 Jun 2026) trains a small (4B–30B) read-only repository explorer. Main agent
 delegates "find X"; FastContext fans out Read/Glob/Grep in parallel; returns
 `file:line` citations. +5.5 SWE-bench, **−60% main-agent tokens.**

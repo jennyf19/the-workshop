@@ -49,9 +49,11 @@ var workshopsDir = Environment.GetEnvironmentVariable("WORKSHOP_DIR") is { Lengt
     : (Path.GetPathRoot(builder.Environment.ContentRootPath) ?? builder.Environment.ContentRootPath);
 
 // Per-agent launch defaults. Agency is the only configurable agent today: it
-// launches (and resumes) wrapped with these MCPs/plugin/model/agent instead of
-// bare (issue #2). Resolution order: environment override > appsettings > the
-// pr-inbox default. Env: WORKSHOP_AGENCY_{MCPS,PLUGIN,MODEL,AGENT,RESUME}.
+// launches (and resumes) wrapped with whatever MCPs/plugin/model/agent you
+// configure, instead of bare (issue #2). These default to empty so nothing
+// environment-specific is baked into the repo; set them per environment via the
+// env vars below or appsettings. Resolution order: environment override >
+// appsettings > built-in default. Env: WORKSHOP_AGENCY_{MCPS,PLUGIN,MODEL,AGENT,RESUME}.
 var cfg = builder.Configuration;
 string AgencyOpt(string env, string key, string fallback)
 {
@@ -63,7 +65,7 @@ string AgencyOpt(string env, string key, string fallback)
 var agentDefaults = new Dictionary<string, WorkshopRoom.Data.AgentLaunchSettings>
 {
     ["agency"] = new WorkshopRoom.Data.AgentLaunchSettings(
-        Mcps: AgencyOpt("WORKSHOP_AGENCY_MCPS", "Mcps", "workiq,teams"),
+        Mcps: AgencyOpt("WORKSHOP_AGENCY_MCPS", "Mcps", ""),
         Plugin: AgencyOpt("WORKSHOP_AGENCY_PLUGIN", "Plugin", ""),
         Model: AgencyOpt("WORKSHOP_AGENCY_MODEL", "Model", ""),
         Agent: AgencyOpt("WORKSHOP_AGENCY_AGENT", "Agent", ""),

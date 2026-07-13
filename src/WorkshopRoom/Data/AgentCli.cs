@@ -80,8 +80,8 @@ public static class AgentClis
     // --- invocation building -------------------------------------------------
 
     // Characters allowed in a config token (an MCP name, plugin ref, model, or
-    // agent id). Covers real values — "github:1ES-microsoft/ai-plugins:plugins/x",
-    // "claude-opus-4.7-xhigh", "security-toolkit:dual-model-review". Anything
+    // agent id). Covers real values — "github:acme-org/agent-plugins:plugins/x",
+    // "claude-opus-4.7-xhigh", "code-toolkit:code-review". Anything
     // outside this set (quotes, spaces, ; & | $ ` < > ( ) …) is dropped rather
     // than passed on — the same "never reaches a shell" guarantee ByKey gives
     // the executable, extended to the flags the room fills in.

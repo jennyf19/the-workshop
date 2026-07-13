@@ -89,7 +89,7 @@ public class AgentCliTests
 
     [Theory]
     [InlineData("workiq", true)]
-    [InlineData("github:1ES-microsoft/ai-plugins:plugins/security-toolkit", true)]
+    [InlineData("github:acme-org/agent-plugins:plugins/review-bot", true)]
     [InlineData("claude-opus-4.7-xhigh", true)]
     [InlineData("bad token", false)]   // space
     [InlineData("bad;token", false)]   // command separator

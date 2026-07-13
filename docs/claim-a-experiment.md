@@ -1,7 +1,7 @@
 # Claim A — the structural miss rate (the Workshop's measurable claim)
 
 *2026-06-29. The Workshop's answer to "what's your 60%?"
-— prompted by [microsoft/fastcontext](https://github.com/microsoft/fastcontext)
+— prompted by [FastContext (MSR)](https://arxiv.org/abs/2606.14066)
 (−60% main-agent tokens) and the question of whether the room has a number of
 its own. Mechanism: `desk-vs-subagent.md`. Where it plugs in: `positioning.md`,
 `prfaq.md` ("how do I know the room is working?").*
