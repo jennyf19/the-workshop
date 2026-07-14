@@ -41,11 +41,13 @@ public class SecurityHardeningTests
     [Theory]
     [InlineData("jennyf19", true)]
     [InlineData("acme-org", true)]
+    [InlineData("jeferrie_microsoft", true)]   // enterprise managed user (EMU) — underscore is valid
     [InlineData("A1", true)]
     [InlineData("", false)]
     [InlineData("bad owner", false)]
     [InlineData("a;b", false)]
     [InlineData("-lead", false)]      // leading '-' would read as a gh flag
+    [InlineData("_lead", false)]      // leading '_' rejected too (first char must be alphanumeric)
     [InlineData("a/b", false)]
     public void IsSafeAccount_matches_github_login_shape(string owner, bool expected)
         => WorkshopLauncher.IsSafeAccount(owner).Should().Be(expected);

@@ -33,13 +33,17 @@ public static class WorkshopLauncher
         IsSafeName(name) ? name!.Trim() : "desk";
 
     // A gh account login: GitHub usernames are ASCII alphanumerics and single
-    // hyphens. Validating it keeps 'owner' from injecting extra gh arguments.
+    // hyphens; enterprise managed users (EMU) also carry an underscore, e.g.
+    // "jeferrie_microsoft". Validating it keeps 'owner' from injecting extra gh
+    // arguments — '-' and '_' are inert on the command line (gh is spawned
+    // without a shell), and a leading '-'/'_' is still rejected so it can't be
+    // read as a gh flag.
     internal static bool IsSafeAccount(string? owner)
     {
         owner = (owner ?? "").Trim();
         return owner.Length > 0
-            && char.IsLetterOrDigit(owner[0])                        // no leading '-' (would read as a gh flag)
-            && owner.All(c => char.IsLetterOrDigit(c) || c == '-');
+            && char.IsLetterOrDigit(owner[0])                        // first char alphanumeric (no leading '-'/'_')
+            && owner.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_');
     }
 
     // Creates a mini-workshop: a local folder with a workshop.md brief and a
