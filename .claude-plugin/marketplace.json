@@ -1,0 +1,17 @@
+{
+  "name": "the-workshop",
+  "owner": {
+    "name": "jennyf19"
+  },
+  "metadata": {
+    "description": "Multi-agent coordination with persistent desks, shared bench, and agent signals.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "workshop",
+      "source": ".",
+      "description": "Stop being the switchboard between your AI agents — direct a team. Long-running desks with persistent journals, a shared bench, structured signals, and a TA that reads the room."
+    }
+  ]
+}

@@ -20,6 +20,30 @@ It's also why the first file every desk reads is [`CAIRN.md`](CAIRN.md) — the
 operating disposition for how a desk stands at the bench: stop is a valid finish,
 never bluff, equal standing to disagree.
 
+## Install the plugin
+
+The Workshop ships as a plugin for **both agent ecosystems, from this one repo** —
+same skills, same TA, same cairn:
+
+**GitHub Copilot (GHCP app / Copilot CLI):**
+
+```
+/plugin marketplace add jennyf19/the-workshop
+/plugin install workshop@the-workshop
+```
+
+**Claude Code:**
+
+```
+/plugin marketplace add jennyf19/the-workshop
+/plugin install workshop@the-workshop
+```
+
+Yes — the commands are identical. The repo carries `.github/plugin/` for GHCP and
+`.claude-plugin/` for Claude Code, both pointing at the same `skills/` and `agents/`.
+You get: the **Workshop TA** (room coordinator), and the four desk skills —
+`desk-open`, `desk-journal`, `signal-write`, `bench-read`.
+
 ## What's here
 
 - **`src/WorkshopRoom/`** — the Workshop app: a .NET 10 Blazor Server operator dashboard that
