@@ -98,6 +98,7 @@ async function scanSignals(workshopDir) {
                 results.push({
                     deskName: entry.name,
                     signalType: sig.signal_type || "execution",
+                    subtype: sig.subtype || sig.signal_type || "execution",
                     agentName: sig.agent_name || entry.name,
                     confidence: sig.self_assessment?.confidence || 0,
                     accuracy: sig.self_assessment?.accuracy || 0,
@@ -226,10 +227,14 @@ function renderSignalCard(sig) {
     const bgColor = isEscalation ? "#0f0604" : "#0f172a";
 
     const typeLabel = isEscalation
-        ? `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ ESCALATION</span>`
+        ? `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ ${sig.subtype === "blocked" ? "BLOCKED" : "HANDS-UP"}</span>`
         : noSignal
         ? `<span style="background:#1e293b;color:#64748b;padding:2px 8px;border-radius:4px;font-size:11px;">📡 awaiting</span>`
-        : `<span style="background:#0c2d48;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-size:11px;">✓ execution</span>`;
+        : sig.subtype === "done"
+        ? `<span style="background:#052e16;color:#86efac;padding:2px 8px;border-radius:4px;font-size:11px;">✓ done</span>`
+        : sig.subtype === "partnership"
+        ? `<span style="background:#1e1b4b;color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:11px;">◇ partnership</span>`
+        : `<span style="background:#0c2d48;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-size:11px;">✓ checkpoint</span>`;
 
     const stashBtn = `<button onclick="stashDesk('${esc(sig.deskName)}')"
         style="background:none;border:1px solid #1e293b;color:#475569;padding:2px 8px;border-radius:4px;
