@@ -23,5 +23,8 @@
     "./skills/desk-journal/",
     "./skills/signal-write/",
     "./skills/bench-read/"
+  ],
+  "extensions": [
+    ".github/extensions/signals-dashboard/"
   ]
 }
