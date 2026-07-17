@@ -1,0 +1,9 @@
+{
+  "hooks": [
+    {
+      "event": "session.end",
+      "description": "Auto-journal: write a short end-of-session entry to the desk's journal when a session winds down.",
+      "prompt": "You're being wound down. Write a short end-of-session journal entry (what you worked on, current state, next step) and append it to the desk's journal.md. Keep it to a few lines."
+    }
+  ]
+}
