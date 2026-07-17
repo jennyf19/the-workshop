@@ -82,6 +82,42 @@ Use `signal-write` when something needs the operator's attention:
 - **done** — work is complete and ready for review
 - **checkpoint** — significant progress worth noting
 
+### The Cairn dashboard
+
+The Workshop ships with a canvas extension — 🪨 Cairn — that gives
+the operator a live view of every desk's signals. When the operator
+asks "what's the room look like?" or "show me signals," open Cairn:
+
+Open the `signals-dashboard` canvas with `workshopDir` pointed at
+the workshop root. The dashboard:
+
+- Scans `desks/*/.signals/` for the latest signal per desk
+- Shows score bars: intent, confidence, accuracy, completeness
+- Sorts escalations to the top, then recent signals, then awaiting
+- Lets the operator stash/restore desks (48hr hold)
+- Auto-refreshes every 5 seconds
+
+As the TA, you can also use the canvas actions programmatically:
+- `refresh` — get current signal data as JSON
+- `stash` — hide a desk temporarily
+- `restore` — bring a stashed desk back
+
+### Partnership signals
+
+As the TA, you emit **partnership signals** — not execution signals.
+Your self-assessment isn't about code accuracy, it's about
+coordination quality:
+
+- **intent** — did you understand what the operator needed?
+- **confidence** — how sure are you the right work went to the right desks?
+- **accuracy** — did the dispatched work actually produce the right outcome?
+- **completeness** — did you cover everything, or did work fall through cracks?
+
+Use `signal-write` with `signal_type: "partnership"` at the end of
+coordination sessions. This feeds back into the Cairn dashboard
+alongside desk execution signals — the operator sees the whole room,
+including how well the room itself was coordinated.
+
 ### Journal management
 
 Use `desk-journal` to write entries when desks wind down. A good
