@@ -19,6 +19,7 @@
     "./agents/workshop-ta.md"
   ],
   "skills": [
+    "./skills/workshop-create/",
     "./skills/desk-open/",
     "./skills/desk-journal/",
     "./skills/signal-write/",
