@@ -67,6 +67,7 @@ async function scanSignals(workshopDir) {
                     whatWorked: "", whatWasHard: "", skillGap: "",
                     escalationReason: null, escalationBlocked: null, recommendation: null,
                     emittedAt: null, signalCount: 0,
+                    tokensIn: 0, tokensOut: 0, model: null,
                 });
                 continue;
             }
@@ -79,6 +80,7 @@ async function scanSignals(workshopDir) {
                     whatWorked: "", whatWasHard: "", skillGap: "",
                     escalationReason: null, escalationBlocked: null, recommendation: null,
                     emittedAt: null, signalCount: 0,
+                    tokensIn: 0, tokensOut: 0, model: null,
                 });
                 continue;
             }
@@ -112,6 +114,9 @@ async function scanSignals(workshopDir) {
                     recommendation: sig.escalation?.recommendation || null,
                     emittedAt: new Date(latestTime).toISOString(),
                     signalCount: jsonFiles.length,
+                    tokensIn: sig.usage?.tokens_in || 0,
+                    tokensOut: sig.usage?.tokens_out || 0,
+                    model: sig.usage?.model || null,
                 });
             } catch {}
         }
@@ -146,6 +151,13 @@ function esc(s) {
 }
 function truncate(s, len) {
     return s.length > len ? s.slice(0, len) + "…" : s;
+}
+
+function formatTokens(n) {
+    if (!n) return null;
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return `${n}`;
 }
 
 function scoreBar(value, label, max = 5) {
@@ -194,10 +206,15 @@ function renderSummaryBar(activeSignals) {
     const escalations = activeSignals.filter(s => s.signalType === "escalation").length;
     const withSignals = activeSignals.filter(s => s.signalType !== "none").length;
     const awaiting = activeSignals.filter(s => s.signalType === "none").length;
+    const totalTokens = activeSignals.reduce((sum, s) => sum + (s.tokensIn || 0) + (s.tokensOut || 0), 0);
     const avg = avgScore(activeSignals);
 
     const escBadge = escalations > 0
         ? `<span style="background:#7f1d1d;color:#fca5a5;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;">⚠ ${escalations} escalation${escalations > 1 ? "s" : ""}</span>`
+        : "";
+
+    const tokenBadge = totalTokens > 0
+        ? `<span style="font-size:11px;color:#475569;">🪙 ${formatTokens(totalTokens)}</span>`
         : "";
 
     const avgBlock = avg ? `
@@ -214,6 +231,7 @@ function renderSummaryBar(activeSignals) {
         <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#cbd5e1;"><b style="color:#f1f5f9;">${activeSignals.length}</b> desk${activeSignals.length !== 1 ? "s" : ""}</span>
             <span style="font-size:11px;color:#475569;">${withSignals} reporting · ${awaiting} awaiting</span>
+            ${tokenBadge}
             ${escBadge}
         </div>
         ${avgBlock}
@@ -279,6 +297,7 @@ function renderSignalCard(sig) {
                 ${typeLabel}
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
+                ${(sig.tokensIn || sig.tokensOut) ? `<span style="font-size:10px;color:#334155;background:#0f172a;border:1px solid #1e293b;padding:1px 6px;border-radius:3px;" title="in: ${sig.tokensIn} · out: ${sig.tokensOut}${sig.model ? ' · ' + esc(sig.model) : ''}">🪙 ${formatTokens(sig.tokensIn + sig.tokensOut)}</span>` : ""}
                 <span style="font-size:11px;color:#475569;">${timeSince(sig.emittedAt)}${sig.signalCount ? ` · ${sig.signalCount}` : ""}</span>
                 ${stashBtn}
             </div>
