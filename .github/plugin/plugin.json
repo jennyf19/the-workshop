@@ -19,11 +19,11 @@
     "./agents/workshop-ta.md"
   ],
   "skills": [
-    "./skills/workshop-create/",
-    "./skills/desk-open/",
+    "./skills/bench-read/",
     "./skills/desk-journal/",
+    "./skills/desk-open/",
     "./skills/signal-write/",
-    "./skills/bench-read/"
+    "./skills/workshop-create/"
   ],
   "extensions": [
     ".github/extensions/signals-dashboard/"
