@@ -66,8 +66,7 @@ async function scanSignals(workshopDir) {
                     confidence: 0, accuracy: 0, completeness: 0, intent: 0,
                     whatWorked: "", whatWasHard: "", skillGap: "",
                     escalationReason: null, escalationBlocked: null, recommendation: null,
-                    emittedAt: null, signalCount: 0,
-                    tokensIn: 0, tokensOut: 0, model: null,
+                    emittedAt: null, signalCount: 0, tokensIn: 0, tokensOut: 0, model: null,
                 });
                 continue;
             }
@@ -79,33 +78,69 @@ async function scanSignals(workshopDir) {
                     confidence: 0, accuracy: 0, completeness: 0, intent: 0,
                     whatWorked: "", whatWasHard: "", skillGap: "",
                     escalationReason: null, escalationBlocked: null, recommendation: null,
-                    emittedAt: null, signalCount: 0,
-                    tokensIn: 0, tokensOut: 0, model: null,
+                    emittedAt: null, signalCount: 0, tokensIn: 0, tokensOut: 0, model: null,
                 });
                 continue;
             }
 
+            // Read all signals, separate by type, find latest execution/partnership + any outcome signals
             let latest = null, latestTime = 0;
+            const allSignals = [];
             for (const f of jsonFiles) {
                 const fp = join(sigDir, f);
                 try {
                     const s = await stat(fp);
-                    if (s.mtimeMs > latestTime) { latestTime = s.mtimeMs; latest = fp; }
+                    const raw = await readFile(fp, "utf-8");
+                    const parsed = JSON.parse(raw);
+                    allSignals.push({ parsed, mtimeMs: s.mtimeMs, path: fp });
+                    // Latest non-outcome signal (execution, partnership, escalation)
+                    if ((parsed.signal_type || "execution") !== "outcome" && s.mtimeMs > latestTime) {
+                        latestTime = s.mtimeMs; latest = { parsed, mtimeMs: s.mtimeMs };
+                    }
                 } catch {}
             }
             if (!latest) continue;
             try {
-                const raw = await readFile(latest, "utf-8");
-                const sig = JSON.parse(raw);
+                const sig = latest.parsed;
+                const intentRaw = sig.intent || sig.self_assessment?.intent || null;
+
+                // Find outcome signal matched by run_id (if any)
+                let outcome = null;
+                if (sig.run_id) {
+                    const outcomeSignals = allSignals
+                        .filter(s => s.parsed.signal_type === "outcome" && s.parsed.run_id === sig.run_id);
+                    if (outcomeSignals.length > 0) {
+                        outcome = outcomeSignals.sort((a, b) => b.mtimeMs - a.mtimeMs)[0].parsed;
+                    }
+                }
+                // Also check for any recent outcome (within 1hr of latest signal) if no run_id match
+                if (!outcome) {
+                    const recentOutcomes = allSignals
+                        .filter(s => s.parsed.signal_type === "outcome" && Math.abs(s.mtimeMs - latestTime) < 3600000)
+                        .sort((a, b) => b.mtimeMs - a.mtimeMs);
+                    if (recentOutcomes.length > 0) outcome = recentOutcomes[0].parsed;
+                }
+
+                // Compute honesty gap if we have both self-assessment and outcome
+                let honestyGap = null;
+                if (outcome && sig.self_assessment) {
+                    const selfConf = sig.self_assessment.confidence || 0;
+                    const outcomeRating = outcome.quality_rating || 0;
+                    if (selfConf > 0 && outcomeRating > 0) {
+                        honestyGap = Math.abs(selfConf - outcomeRating);
+                    }
+                }
+
                 results.push({
                     deskName: entry.name,
                     signalType: sig.signal_type || "execution",
                     subtype: sig.subtype || sig.signal_type || "execution",
                     agentName: sig.agent_name || entry.name,
+                    intentText: typeof intentRaw === "string" ? intentRaw : null,
+                    intentScore: typeof intentRaw === "number" ? intentRaw : 0,
                     confidence: sig.self_assessment?.confidence || 0,
                     accuracy: sig.self_assessment?.accuracy || 0,
                     completeness: sig.self_assessment?.completeness || 0,
-                    intent: sig.self_assessment?.intent || 0,
                     whatWorked: sig.patterns?.what_worked || "",
                     whatWasHard: sig.patterns?.what_was_hard || "",
                     skillGap: sig.patterns?.skill_gap || "",
@@ -117,6 +152,12 @@ async function scanSignals(workshopDir) {
                     tokensIn: sig.usage?.tokens_in || 0,
                     tokensOut: sig.usage?.tokens_out || 0,
                     model: sig.usage?.model || null,
+                    // Outcome signal fields
+                    outcomeRating: outcome?.quality_rating || null,
+                    outcomeEffort: outcome?.effort_to_merge || null,
+                    outcomeIssues: outcome?.issues_found || [],
+                    outcomeAgent: outcome?.agent_name || null,
+                    honestyGap: honestyGap,
                 });
             } catch {}
         }
@@ -152,7 +193,6 @@ function esc(s) {
 function truncate(s, len) {
     return s.length > len ? s.slice(0, len) + "…" : s;
 }
-
 function formatTokens(n) {
     if (!n) return null;
     if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
@@ -199,15 +239,21 @@ function avgScore(signals) {
         const vals = withSignals.map(s => s[field]).filter(v => v > 0);
         return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
     };
-    return { confidence: avg("confidence"), accuracy: avg("accuracy"), completeness: avg("completeness"), intent: avg("intent") };
+    return { confidence: avg("confidence"), accuracy: avg("accuracy"), completeness: avg("completeness"), intent: avg("intentScore") };
 }
 
 function renderSummaryBar(activeSignals) {
     const escalations = activeSignals.filter(s => s.signalType === "escalation").length;
     const withSignals = activeSignals.filter(s => s.signalType !== "none").length;
     const awaiting = activeSignals.filter(s => s.signalType === "none").length;
-    const totalTokens = activeSignals.reduce((sum, s) => sum + (s.tokensIn || 0) + (s.tokensOut || 0), 0);
     const avg = avgScore(activeSignals);
+
+    const totalTokens = activeSignals.reduce((sum, s) => sum + (s.tokensIn || 0) + (s.tokensOut || 0), 0);
+    const withOutcomes = activeSignals.filter(s => s.outcomeRating !== null).length;
+    const avgGap = (() => {
+        const gaps = activeSignals.filter(s => s.honestyGap !== null).map(s => s.honestyGap);
+        return gaps.length ? (gaps.reduce((a, b) => a + b, 0) / gaps.length).toFixed(1) : null;
+    })();
 
     const escBadge = escalations > 0
         ? `<span style="background:#7f1d1d;color:#fca5a5;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;">⚠ ${escalations} escalation${escalations > 1 ? "s" : ""}</span>`
@@ -215,6 +261,10 @@ function renderSummaryBar(activeSignals) {
 
     const tokenBadge = totalTokens > 0
         ? `<span style="font-size:11px;color:#475569;">🪙 ${formatTokens(totalTokens)}</span>`
+        : "";
+
+    const calibrationBadge = withOutcomes > 0
+        ? `<span style="font-size:11px;color:${avgGap <= 1 ? '#22c55e' : avgGap <= 2 ? '#eab308' : '#ef4444'};" title="${withOutcomes} outcome signal${withOutcomes > 1 ? 's' : ''}, avg gap: ${avgGap}">🔍 gap ${avgGap}</span>`
         : "";
 
     const avgBlock = avg ? `
@@ -232,6 +282,7 @@ function renderSummaryBar(activeSignals) {
             <span style="font-size:13px;color:#cbd5e1;"><b style="color:#f1f5f9;">${activeSignals.length}</b> desk${activeSignals.length !== 1 ? "s" : ""}</span>
             <span style="font-size:11px;color:#475569;">${withSignals} reporting · ${awaiting} awaiting</span>
             ${tokenBadge}
+            ${calibrationBadge}
             ${escBadge}
         </div>
         ${avgBlock}
@@ -240,18 +291,21 @@ function renderSummaryBar(activeSignals) {
 
 function renderSignalCard(sig) {
     const isEscalation = sig.signalType === "escalation";
+    const isPartnership = sig.signalType === "partnership";
     const noSignal = sig.signalType === "none";
     const borderColor = isEscalation ? "#dc2626" : noSignal ? "#1e293b" : "#1e3a5f";
     const bgColor = isEscalation ? "#0f0604" : "#0f172a";
 
     const typeLabel = isEscalation
-        ? `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ ${sig.subtype === "blocked" ? "BLOCKED" : "HANDS-UP"}</span>`
+        ? (sig.subtype === "blocked"
+            ? `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ BLOCKED</span>`
+            : `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ HANDS-UP</span>`)
         : noSignal
         ? `<span style="background:#1e293b;color:#64748b;padding:2px 8px;border-radius:4px;font-size:11px;">📡 awaiting</span>`
+        : isPartnership
+        ? `<span style="background:#1e3a5f;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-size:11px;">🤝 partnership</span>`
         : sig.subtype === "done"
         ? `<span style="background:#052e16;color:#86efac;padding:2px 8px;border-radius:4px;font-size:11px;">✓ done</span>`
-        : sig.subtype === "partnership"
-        ? `<span style="background:#1e1b4b;color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:11px;">◇ partnership</span>`
         : `<span style="background:#0c2d48;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-size:11px;">✓ checkpoint</span>`;
 
     const stashBtn = `<button onclick="stashDesk('${esc(sig.deskName)}')"
@@ -259,6 +313,14 @@ function renderSignalCard(sig) {
                font-size:11px;cursor:pointer;transition:all .15s;"
         onmouseover="this.style.borderColor='#dc2626';this.style.color='#fca5a5'"
         onmouseout="this.style.borderColor='#1e293b';this.style.color='#475569'">stash</button>`;
+
+    const openBtnStyle = isEscalation
+        ? "background:#7f1d1d;border:1px solid #dc2626;color:#fca5a5;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;"
+        : "background:none;border:1px solid #1e3a5f;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;transition:all .15s;";
+    const openBtn = noSignal ? "" : `<button onclick="openDesk('${esc(sig.deskName)}')"
+        style="${openBtnStyle}"
+        onmouseover="this.style.background='#1e3a5f'"
+        onmouseout="this.style.background='${isEscalation ? '#7f1d1d' : 'transparent'}'">open</button>`;
 
     let escalationBlock = "";
     if (isEscalation && sig.escalationReason) {
@@ -270,23 +332,84 @@ function renderSignalCard(sig) {
         </div>`;
     }
 
+    // --- Intent text (execution signals with text intent) ---
+    const intentBlock = sig.intentText ? `
+        <div style="font-size:13px;color:#e2e8f0;line-height:1.5;margin-bottom:10px;padding:8px 10px;
+                    background:#020617;border-left:3px solid #3b82f6;border-radius:0 4px 4px 0;">
+            ${esc(sig.intentText)}
+        </div>` : "";
+
+    // --- Scores: shown for partnership signals, or legacy execution signals with numeric scores ---
+    const hasScores = isPartnership
+        ? true
+        : (sig.intentScore > 0 || sig.confidence > 0 || sig.accuracy > 0 || sig.completeness > 0);
+
     const scoresBlock = noSignal ? `
         <div style="padding:12px 0;text-align:center;color:#334155;font-size:12px;">
             No signals yet — this desk is waiting for its first session.
-        </div>` : `
+        </div>` : isPartnership ? `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:12px;">
-            ${scoreBar(sig.intent, "intent")}
+            ${scoreBar(sig.intentScore, "intent")}
             ${scoreBar(sig.confidence, "confidence")}
             ${scoreBar(sig.accuracy, "accuracy")}
             ${scoreBar(sig.completeness, "completeness")}
-        </div>`;
+        </div>` : hasScores ? `
+        <details style="margin-bottom:8px;">
+            <summary style="font-size:10px;color:#475569;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;">scores</summary>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:6px;">
+                ${sig.intentScore > 0 ? scoreBar(sig.intentScore, "intent") : ""}
+                ${sig.confidence > 0 ? scoreBar(sig.confidence, "confidence") : ""}
+                ${sig.accuracy > 0 ? scoreBar(sig.accuracy, "accuracy") : ""}
+                ${sig.completeness > 0 ? scoreBar(sig.completeness, "completeness") : ""}
+            </div>
+        </details>` : "";
 
+    // --- Patterns: primary for execution, secondary for partnership ---
     const patternsBlock = (sig.whatWorked || sig.whatWasHard || sig.skillGap) ? `
-        <div style="border-top:1px solid #1e293b;padding-top:8px;margin-top:4px;">
+        <div style="${isPartnership ? 'border-top:1px solid #1e293b;padding-top:8px;margin-top:4px;' : 'margin-bottom:8px;'}">
             ${sig.whatWorked ? `<div style="font-size:12px;margin-bottom:3px;line-height:1.4;"><span style="color:#22c55e;margin-right:4px;">✓</span><span style="color:#94a3b8;">${esc(truncate(sig.whatWorked, 160))}</span></div>` : ""}
             ${sig.whatWasHard ? `<div style="font-size:12px;margin-bottom:3px;line-height:1.4;"><span style="color:#eab308;margin-right:4px;">△</span><span style="color:#94a3b8;">${esc(truncate(sig.whatWasHard, 160))}</span></div>` : ""}
             ${sig.skillGap ? `<div style="font-size:12px;line-height:1.4;"><span style="color:#ef4444;margin-right:4px;">✗</span><span style="color:#94a3b8;">${esc(truncate(sig.skillGap, 160))}</span></div>` : ""}
         </div>` : "";
+
+    // --- Outcome signal / honesty gap ---
+    let outcomeBlock = "";
+    if (sig.outcomeRating !== null && !noSignal) {
+        const gapColor = sig.honestyGap === null ? "#475569"
+            : sig.honestyGap <= 1 ? "#22c55e"
+            : sig.honestyGap === 2 ? "#eab308"
+            : "#ef4444";
+        const gapLabel = sig.honestyGap === null ? "—"
+            : sig.honestyGap <= 1 ? "well-calibrated"
+            : sig.honestyGap === 2 ? "moderate gap"
+            : "significant gap";
+        const effortColor = sig.outcomeEffort === "minimal" ? "#22c55e"
+            : sig.outcomeEffort === "moderate" ? "#eab308"
+            : sig.outcomeEffort === "significant" ? "#ef4444" : "#475569";
+
+        outcomeBlock = `
+        <div style="margin-top:8px;padding:8px 10px;background:#020617;border:1px solid #1e293b;border-radius:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;">🔍 outcome${sig.outcomeAgent ? ` · ${esc(sig.outcomeAgent)}` : ""}</span>
+                ${sig.honestyGap !== null ? `<span style="font-size:10px;color:${gapColor};font-weight:600;">${gapLabel} (gap: ${sig.honestyGap})</span>` : ""}
+            </div>
+            <div style="display:flex;gap:16px;align-items:center;">
+                <div style="flex:1;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                        <span style="font-size:10px;color:#64748b;">quality</span>
+                        <span style="font-size:10px;color:#94a3b8;">${sig.outcomeRating}/5</span>
+                    </div>
+                    <div style="height:4px;background:#1e293b;border-radius:2px;overflow:hidden;">
+                        <div style="width:${(sig.outcomeRating / 5) * 100}%;height:100%;background:${sig.outcomeRating >= 4 ? '#22c55e' : sig.outcomeRating >= 3 ? '#eab308' : '#ef4444'};border-radius:2px;"></div>
+                    </div>
+                </div>
+                <span style="font-size:11px;color:${effortColor};">${sig.outcomeEffort || "—"} effort</span>
+            </div>
+            ${sig.outcomeIssues?.length ? `<div style="margin-top:6px;font-size:11px;color:#94a3b8;">
+                ${sig.outcomeIssues.map(i => `<div style="margin-top:2px;">· ${esc(truncate(i, 120))}</div>`).join("")}
+            </div>` : ""}
+        </div>`;
+    }
 
     return `
     <div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:14px;margin-bottom:8px;
@@ -299,11 +422,12 @@ function renderSignalCard(sig) {
             <div style="display:flex;align-items:center;gap:8px;">
                 ${(sig.tokensIn || sig.tokensOut) ? `<span style="font-size:10px;color:#334155;background:#0f172a;border:1px solid #1e293b;padding:1px 6px;border-radius:3px;" title="in: ${sig.tokensIn} · out: ${sig.tokensOut}${sig.model ? ' · ' + esc(sig.model) : ''}">🪙 ${formatTokens(sig.tokensIn + sig.tokensOut)}</span>` : ""}
                 <span style="font-size:11px;color:#475569;">${timeSince(sig.emittedAt)}${sig.signalCount ? ` · ${sig.signalCount}` : ""}</span>
+                ${openBtn}
                 ${stashBtn}
             </div>
         </div>
-        ${scoresBlock}
-        ${patternsBlock}
+        ${isPartnership ? `${scoresBlock}${patternsBlock}` : `${intentBlock}${patternsBlock}${scoresBlock}`}
+        ${outcomeBlock}
         ${escalationBlock}
     </div>`;
 }
@@ -401,6 +525,20 @@ function renderDashboard(signals, stashed) {
             await fetch('/api/restore/' + encodeURIComponent(name), { method: 'POST' });
             refresh();
         }
+        async function openDesk(name) {
+            const res = await fetch('/api/open/' + encodeURIComponent(name), { method: 'POST' });
+            const data = await res.json();
+            if (data.ok) {
+                const toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);' +
+                    'background:#1e3a5f;color:#7dd3fc;padding:10px 20px;border-radius:8px;font-size:13px;' +
+                    'border:1px solid #3b82f6;z-index:999;max-width:90%;text-align:center;';
+                toast.innerHTML = '📂 <b>' + name + '</b> desk ready' +
+                    '<div style="font-size:10px;color:#475569;margin-top:4px;">Path: ' + (data.deskPath || name) + '</div>';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
+        }
         async function refresh() {
             try {
                 const res = await fetch('/');
@@ -438,6 +576,23 @@ async function startServer(instanceId, workshopDir) {
             await restoreDesk(workshopDir, deskName);
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ ok: true }));
+            return;
+        }
+        if (req.method === "POST" && url.pathname.startsWith("/api/open/")) {
+            const deskName = decodeURIComponent(url.pathname.split("/api/open/")[1]);
+            for (const subdir of ["desks", "classroom"]) {
+                const deskPath = join(workshopDir, subdir, deskName);
+                try {
+                    const s = await stat(deskPath);
+                    if (s.isDirectory()) {
+                        res.writeHead(200, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({ ok: true, deskName, deskPath }));
+                        return;
+                    }
+                } catch {}
+            }
+            res.writeHead(404, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ ok: false, error: "Desk not found" }));
             return;
         }
 
@@ -507,6 +662,30 @@ const session = await joinSession({
                         if (!entry) return { error: "Dashboard not open" };
                         const stash = await restoreDesk(entry.workshopDir, ctx.input.deskName);
                         return { ok: true, stashed: stash };
+                    },
+                },
+                {
+                    name: "open_desk",
+                    description: "Open a desk as a new session in the GHCP app. Returns the desk path so the agent can create_session or navigate to it.",
+                    inputSchema: {
+                        type: "object",
+                        properties: { deskName: { type: "string", description: "Name of the desk to open" } },
+                        required: ["deskName"],
+                    },
+                    handler: async (ctx) => {
+                        const entry = servers.get(ctx.instanceId);
+                        if (!entry) return { error: "Dashboard not open" };
+                        // Check both desks/ and classroom/
+                        for (const subdir of ["desks", "classroom"]) {
+                            const deskPath = join(entry.workshopDir, subdir, ctx.input.deskName);
+                            try {
+                                const s = await stat(deskPath);
+                                if (s.isDirectory()) {
+                                    return { ok: true, deskName: ctx.input.deskName, deskPath, workshopDir: entry.workshopDir };
+                                }
+                            } catch {}
+                        }
+                        return { error: `Desk '${ctx.input.deskName}' not found` };
                     },
                 },
             ],
