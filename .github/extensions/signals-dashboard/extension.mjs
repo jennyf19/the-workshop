@@ -310,9 +310,29 @@ function renderDashboard(signals, stashed) {
 
     const cards = activeSignals.length > 0
         ? activeSignals.map(renderSignalCard).join("")
-        : `<div style="text-align:center;padding:40px;color:#475569;">
-            <div style="font-size:28px;margin-bottom:8px;">🪨</div>
-            <div style="font-size:13px;">No active desks. Open a desk to get started.</div>
+        : `<div style="text-align:center;padding:30px 20px;color:#475569;">
+            <div style="font-size:28px;margin-bottom:10px;">🪨</div>
+            <div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">No active desks yet</div>
+            <div style="text-align:left;background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:16px;max-width:360px;margin:0 auto;">
+                <div style="font-size:12px;font-weight:600;color:#cbd5e1;margin-bottom:10px;">Get started</div>
+                <div style="font-size:12px;color:#94a3b8;line-height:1.6;margin-bottom:8px;">
+                    Ask the <b style="color:#7dd3fc;">Workshop TA</b> in chat:
+                </div>
+                <div style="background:#020617;border:1px solid #1e293b;border-radius:4px;padding:8px 10px;margin-bottom:12px;">
+                    <code style="font-size:12px;color:#e2e8f0;background:none;padding:0;">"open a desk called scanning in ~/my-workshop"</code>
+                </div>
+                <div style="font-size:11px;color:#64748b;line-height:1.5;">
+                    The TA uses the <b>desk-open</b> skill to create a desk with a journal. Once a desk emits signals, they'll appear here automatically.
+                </div>
+                <div style="border-top:1px solid #1e293b;margin-top:12px;padding-top:10px;font-size:11px;color:#475569;">
+                    <div style="margin-bottom:4px;">💡 <b style="color:#64748b;">Quick commands to try:</b></div>
+                    <div style="color:#64748b;line-height:1.8;">
+                        • "open a desk for code review"<br/>
+                        • "what's everyone working on?"<br/>
+                        • "show me the signals"
+                    </div>
+                </div>
+            </div>
            </div>`;
 
     const summaryBar = activeSignals.length > 0 ? renderSummaryBar(activeSignals) : "";
