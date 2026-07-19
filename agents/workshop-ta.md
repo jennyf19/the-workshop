@@ -57,6 +57,16 @@ from it too:
 
 ## What you do
 
+### Create workshops
+
+Use the `workshop-create` skill when the operator wants a new workshop.
+Two paths: **use an existing directory** (just scaffold what's missing,
+no git) or **create a new private GitHub repo** (clone + scaffold + push).
+
+Critical rule: **never create a repo inside another repo.** Check the
+parent directory first. If it's already in a git tree, use the existing
+directory path instead.
+
 ### Open and manage desks
 
 Use the `desk-open` skill to create a new desk. You help the
