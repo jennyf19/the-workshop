@@ -134,6 +134,7 @@ async function scanSignals(workshopDir) {
                 results.push({
                     deskName: entry.name,
                     signalType: sig.signal_type || "execution",
+                    subtype: sig.subtype || sig.signal_type || "execution",
                     agentName: sig.agent_name || entry.name,
                     intentText: typeof intentRaw === "string" ? intentRaw : null,
                     intentScore: typeof intentRaw === "number" ? intentRaw : 0,
@@ -238,7 +239,7 @@ function avgScore(signals) {
         const vals = withSignals.map(s => s[field]).filter(v => v > 0);
         return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
     };
-    return { confidence: avg("confidence"), accuracy: avg("accuracy"), completeness: avg("completeness"), intent: avg("intent") };
+    return { confidence: avg("confidence"), accuracy: avg("accuracy"), completeness: avg("completeness"), intent: avg("intentScore") };
 }
 
 function renderSummaryBar(activeSignals) {
@@ -296,12 +297,16 @@ function renderSignalCard(sig) {
     const bgColor = isEscalation ? "#0f0604" : "#0f172a";
 
     const typeLabel = isEscalation
-        ? `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ ESCALATION</span>`
+        ? (sig.subtype === "blocked"
+            ? `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ BLOCKED</span>`
+            : `<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ HANDS-UP</span>`)
         : noSignal
         ? `<span style="background:#1e293b;color:#64748b;padding:2px 8px;border-radius:4px;font-size:11px;">📡 awaiting</span>`
         : isPartnership
         ? `<span style="background:#1e3a5f;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-size:11px;">🤝 partnership</span>`
-        : `<span style="background:#0c2d48;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-size:11px;">✓ execution</span>`;
+        : sig.subtype === "done"
+        ? `<span style="background:#052e16;color:#86efac;padding:2px 8px;border-radius:4px;font-size:11px;">✓ done</span>`
+        : `<span style="background:#0c2d48;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-size:11px;">✓ checkpoint</span>`;
 
     const stashBtn = `<button onclick="stashDesk('${esc(sig.deskName)}')"
         style="background:none;border:1px solid #1e293b;color:#475569;padding:2px 8px;border-radius:4px;
@@ -528,8 +533,8 @@ function renderDashboard(signals, stashed) {
                 toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);' +
                     'background:#1e3a5f;color:#7dd3fc;padding:10px 20px;border-radius:8px;font-size:13px;' +
                     'border:1px solid #3b82f6;z-index:999;max-width:90%;text-align:center;';
-                toast.innerHTML = '📂 Opening <b>' + name + '</b> desk…' +
-                    '<div style="font-size:10px;color:#475569;margin-top:4px;">Session will appear in the sidebar</div>';
+                toast.innerHTML = '📂 <b>' + name + '</b> desk ready' +
+                    '<div style="font-size:10px;color:#475569;margin-top:4px;">Path: ' + (data.deskPath || name) + '</div>';
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 3000);
             }
