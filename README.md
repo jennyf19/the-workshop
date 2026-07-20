@@ -71,6 +71,11 @@ bring it up once:
   and open **🪨 Cairn** from the canvas panel — it auto-loads for every session in
   that workshop.
 
+Once it's up, each desk card has an **open** button that launches a Copilot CLI
+right in that desk's folder — an in-place session inside your workshop repo, so
+every desk stays in the one repo you coordinate through (journals, `.signals`,
+and the board) rather than a separate checkout elsewhere on disk.
+
 ## What's here
 
 - **`src/WorkshopRoom/`** — the Workshop app: a .NET 10 Blazor Server operator dashboard that
