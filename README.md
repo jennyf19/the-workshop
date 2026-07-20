@@ -22,27 +22,54 @@ never bluff, equal standing to disagree.
 
 ## Install the plugin
 
-The Workshop ships as a plugin for **both agent ecosystems, from this one repo** —
-same skills, same TA, same cairn:
+The Workshop ships for **both agent ecosystems, from this one repo** — same skills,
+same TA, same cairn.
 
-**GitHub Copilot (GHCP app / Copilot CLI):**
+**GitHub Copilot (GHCP app / Copilot CLI):** it's in `awesome-copilot`, GitHub's
+default plugin marketplace — nothing to add first, just install:
+
+```
+copilot plugin install the-workshop@awesome-copilot
+```
+
+(In the GitHub Copilot app, use `/plugin install the-workshop@awesome-copilot`.)
+
+**Claude Code:** install from this repo:
 
 ```
 /plugin marketplace add jennyf19/the-workshop
 /plugin install workshop@the-workshop
 ```
 
-**Claude Code:**
+You get: the **Workshop TA** (room coordinator) and five desk skills —
+`desk-open`, `desk-journal`, `signal-write`, `bench-read`, `workshop-create`.
+
+### Run as the TA
+
+Installing the plugin gives you the TA agent — it does **not** switch you into it.
+Start your session as the coordinator explicitly:
 
 ```
-/plugin marketplace add jennyf19/the-workshop
-/plugin install workshop@the-workshop
+copilot --agent the-workshop:workshop-ta
 ```
 
-Yes — the commands are identical. The repo carries `.github/plugin/` for GHCP and
-`.claude-plugin/` for Claude Code, both pointing at the same `skills/` and `agents/`.
-You get: the **Workshop TA** (room coordinator), and the four desk skills —
-`desk-open`, `desk-journal`, `signal-write`, `bench-read`.
+In the GitHub Copilot app, pick **Workshop TA** from the agent selector when you
+start a session. This is the step most people miss — without it you have the skills
+but not the room coordinator.
+
+### Add the 🪨 cairn dashboard
+
+Cairn is a live canvas that reads every desk's signals and shows the whole room at a
+glance — who's blocked, who's done, who has hands up. It's a **companion canvas
+extension, separate from the plugin** (it does not auto-load on install), so you
+bring it up once:
+
+- **Easiest:** ask your TA to **"run cairn"** — it installs the `signals-dashboard`
+  canvas and opens it.
+- **Manual (project scope):** copy `.github/extensions/signals-dashboard/` from this
+  repo into your own workshop's `.github/extensions/` folder, restart Copilot there,
+  and open **🪨 Cairn** from the canvas panel — it auto-loads for every session in
+  that workshop.
 
 ## What's here
 
