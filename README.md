@@ -34,6 +34,10 @@ copilot plugin install the-workshop@awesome-copilot
 
 (In the GitHub Copilot app, use `/plugin install the-workshop@awesome-copilot`.)
 
+> **Using the GitHub Copilot app?** Follow the app-first walkthrough in
+> [`docs/github-copilot-app.md`](docs/github-copilot-app.md) — install, switch into
+> the TA, open a desk, and bring up Cairn, all from inside the app.
+
 **Claude Code:** install from this repo:
 
 ```
@@ -89,6 +93,8 @@ and the board) rather than a separate checkout elsewhere on disk.
   user-assigned goal, reckless means.
 - **`docs/`** — the theory and the product case:
   - `getting-started.md` — **New here? A 2-minute walkthrough of the simple version, with screenshots**
+  - `github-copilot-app.md` — **In the GitHub Copilot app? The app-first walkthrough: install, run as TA, open a desk, run Cairn**
+  - `quickstart.md` — the same flow from the command line, in about five minutes
   - `why-use-this.md` — the Fable 5 hook: the model wants the whole job; the
     Workshop is how you let it without losing the ability to check the work
   - `prfaq.md` — the working-backwards press release + FAQ
