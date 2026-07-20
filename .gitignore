@@ -19,3 +19,6 @@ alerts-dismissed.json
 
 # staged run copy (Start.bat)
 .run/
+
+# local-only marketing/social drafts (iterate locally, never commit)
+linkedin-post-draft.md
