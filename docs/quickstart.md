@@ -61,6 +61,11 @@ live as desks emit signals.
 into your workshop's `.github/extensions/` folder; it auto-loads for every session
 there.)*
 
+Desk cards use the cost-aware **open** profile by default: the Workshop repo
+remains available for cross-desk reads, while ambient plugin MCPs stay out of the
+topic desk's prompt. Choose **connected** when the desk needs every configured
+external system. Agency remains the launcher when installed.
+
 ## What you get
 
 - **Desks** — long-running agents, each with its own memory and history.

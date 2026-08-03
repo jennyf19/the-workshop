@@ -51,6 +51,10 @@ the current working directory.
   fetch (no full page reload), so scores and escalations stay current smoothly.
 - **Summary bar** — desk count, how many are reporting vs. awaiting, an
   escalation badge, and average scores across the room.
+- **Cost-aware desk launch** — **open** starts a repo-profile desk that keeps the
+  verified Workshop root available while suppressing ambient plugin MCPs.
+  **connected** preserves every configured MCP for work that needs external
+  systems. Agency remains the preferred wrapper when installed.
 
 ## Agent actions
 
@@ -59,6 +63,25 @@ The canvas also exposes actions Copilot can invoke directly:
 - `refresh` — force a rescan and return current signal data as JSON.
 - `stash` — stash a desk by `deskName`.
 - `restore` — restore a stashed desk by `deskName`.
+- `open_desk` — open a desk with optional `profile: "repo" | "connected"`.
+
+## Desk launch profiles
+
+`repo` is the default. At launch, Cairn asks Copilot for the enabled
+plugin-scoped MCP inventory and disables those ambient servers for the topic
+desk. User-, workspace-, organization-, and built-in resources are left alone.
+If discovery fails, Cairn fails open to the connected tool surface.
+
+When Agency is installed, Cairn keeps the existing `agency copilot` launch and
+adds Agency's `--no-default-mcps` in repo mode. Outside Agency, the same profile
+is applied directly to Copilot CLI.
+
+Both profiles pass `--add-dir <workshop-root>` so a desk can intentionally read
+another desk's journal or artifact without receiving access outside the room.
+
+Set `WORKSHOP_DESK_PROFILE=connected` to retain the historical default for the
+main **open** button. The separate **connected** button is always available when
+repo mode is the default.
 
 ## Signal shape
 

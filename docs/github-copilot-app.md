@@ -64,10 +64,19 @@ bring it up once. Just ask the TA:
 It installs the `signals-dashboard` canvas and opens it in the canvas panel. From
 then on it updates live as desks emit signals.
 
-Each desk card on the board has an **open** button that launches a Copilot CLI
-right in that desk's folder: an in-place session inside your workshop repo, so
-every desk stays in the one repo you coordinate through (its journal, its
-`.signals`, and the shared board) rather than a separate checkout elsewhere.
+Each desk card has two launch choices:
+
+- **open** — the cost-aware repo profile. The desk keeps access to the Workshop
+  root for cross-desk journals and artifacts, while ambient plugin MCPs are
+  suppressed.
+- **connected** — the full configured tool surface for work that needs external
+  systems such as issue trackers, mail, or service APIs.
+
+Both launch a CLI right in that desk's folder: an in-place session inside your
+workshop repo, so every desk stays in the one repo you coordinate through (its
+journal, its `.signals`, and the shared board) rather than a separate checkout
+elsewhere. If Agency is installed, both choices keep using the existing Agency
+wrapper.
 
 If you would rather wire the canvas in by hand, copy
 `.github/extensions/signals-dashboard/` from this repo into your own workshop's
