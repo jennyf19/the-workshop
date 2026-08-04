@@ -66,6 +66,9 @@ remains available for cross-desk reads, while ambient plugin MCPs stay out of th
 topic desk's prompt. Choose **connected** when the desk needs every configured
 external system. Agency remains the launcher when installed.
 
+Set `WORKSHOP_DESK_PROFILE=connected` to retain the full surface on the main
+**open** button; the separate **connected** button is then omitted.
+
 ## What you get
 
 - **Desks** — long-running agents, each with its own memory and history.
