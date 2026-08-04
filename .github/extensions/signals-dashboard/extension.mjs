@@ -13,6 +13,7 @@ import { joinSession, createCanvas } from "@github/copilot-sdk/extension";
 import {
     buildDeskAgentArgv,
     isDeskProfile,
+    isWindowsAppExecutionAlias,
     normalizeDeskProfile,
     parsePluginMcpNames,
 } from "./launch-profile.mjs";
@@ -93,11 +94,17 @@ function trySpawn(cmd, args, opts = {}) {
 // match, so auto-detection would pick the wrapper and the terminal would then
 // fail to run it with no fallback.
 function isExecutableFile(p) {
+    return probeExecutableFile(p).ok;
+}
+
+function probeExecutableFile(p) {
     try {
-        if (!statSync(p).isFile()) return false;
+        if (!statSync(p).isFile()) return { ok: false, errorCode: null };
         if (process.platform !== "win32") accessSync(p, fsConstants.X_OK);
-        return true;
-    } catch { return false; }
+        return { ok: true, errorCode: null };
+    } catch (error) {
+        return { ok: false, errorCode: error?.code || null };
+    }
 }
 
 function resolveOnPath(command, { directOnly = false, excludedRoot = null } = {}) {
@@ -115,8 +122,11 @@ function resolveOnPath(command, { directOnly = false, excludedRoot = null } = {}
                 for (const ext of exts) {
                     if (directOnly && ![".EXE", ".COM"].includes(ext.toUpperCase())) continue;
                     const candidate = join(dir, command + ext);
-                    if (!isExecutableFile(candidate)) continue;
-                    const resolved = realpathSync(candidate);
+                    const probe = probeExecutableFile(candidate);
+                    const appAlias = directOnly && probe.errorCode === "EACCES" &&
+                        isWindowsAppExecutionAlias(candidate, process.env.LOCALAPPDATA);
+                    if (!appAlias && !probe.ok) continue;
+                    const resolved = appAlias ? candidate : realpathSync(candidate);
                     if (excludedRoot && isInsideRoot(excludedRoot, resolved)) continue;
                     return resolved;
                 }
