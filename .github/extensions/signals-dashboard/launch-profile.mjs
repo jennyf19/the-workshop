@@ -9,6 +9,14 @@ export function normalizeDeskProfile(value, fallback = "repo") {
     return isDeskProfile(value) ? value.toLowerCase() : fallback;
 }
 
+export function isWindowsAppExecutionAlias(candidate, localAppData) {
+    if (typeof candidate !== "string" || typeof localAppData !== "string") return false;
+    const normalized = candidate.replaceAll("/", "\\").toLowerCase();
+    const root = `${localAppData.replaceAll("/", "\\").replace(/\\+$/, "")}` +
+        "\\microsoft\\windowsapps\\";
+    return normalized.startsWith(root.toLowerCase()) && normalized.endsWith(".exe");
+}
+
 export function parsePluginMcpNames(text) {
     let parsed;
     try { parsed = JSON.parse(text); }

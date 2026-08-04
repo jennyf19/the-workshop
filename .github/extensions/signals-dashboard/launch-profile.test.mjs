@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
     buildDeskAgentArgv,
     isDeskProfile,
+    isWindowsAppExecutionAlias,
     normalizeDeskProfile,
     parsePluginMcpNames,
 } from "./launch-profile.mjs";
@@ -13,6 +14,18 @@ test("normalizes supported profiles and defaults unknown values to repo", () => 
     assert.equal(isDeskProfile("other"), false);
     assert.equal(normalizeDeskProfile("CONNECTED"), "connected");
     assert.equal(normalizeDeskProfile("other"), "repo");
+});
+
+test("recognizes Windows App Execution Alias paths without trusting repository executables", () => {
+    assert.equal(isWindowsAppExecutionAlias(
+        "C:\\Users\\person\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe",
+        "C:\\Users\\person\\AppData\\Local"), true);
+    assert.equal(isWindowsAppExecutionAlias(
+        "C:\\repo\\wt.exe",
+        "C:\\Users\\person\\AppData\\Local"), false);
+    assert.equal(isWindowsAppExecutionAlias(
+        "C:\\Users\\person\\AppData\\Local\\Microsoft\\WindowsApps\\wt.cmd",
+        "C:\\Users\\person\\AppData\\Local"), false);
 });
 
 test("extracts enabled plugin-scoped MCP names and rejects unsafe names", () => {
