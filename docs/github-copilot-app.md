@@ -72,6 +72,9 @@ Each desk card has two launch choices:
 - **connected** — the full configured tool surface for work that needs external
   systems such as issue trackers, mail, or service APIs.
 
+Set `WORKSHOP_DESK_PROFILE=connected` to make the main **open** button use the
+full tool surface; in that mode the separate **connected** button is omitted.
+
 Both launch a CLI right in that desk's folder: an in-place session inside your
 workshop repo, so every desk stays in the one repo you coordinate through (its
 journal, its `.signals`, and the shared board) rather than a separate checkout
