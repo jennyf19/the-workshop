@@ -70,7 +70,8 @@ The canvas also exposes actions Copilot can invoke directly:
 `repo` is the default. At launch, Cairn asks Copilot for the enabled
 plugin-scoped MCP inventory and disables those ambient servers for the topic
 desk. User-, workspace-, organization-, and built-in resources are left alone.
-If discovery fails, Cairn fails open to the connected tool surface.
+If discovery fails, Copilot plugin MCP suppression fails open; Agency repo mode
+still omits Agency's own default MCPs.
 
 When Agency is installed, Cairn keeps the existing `agency copilot` launch and
 adds Agency's `--no-default-mcps` in repo mode. Outside Agency, the same profile
