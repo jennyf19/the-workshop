@@ -55,6 +55,11 @@ the current working directory.
   verified Workshop root available while suppressing ambient plugin MCPs.
   **connected** preserves every configured MCP for work that needs external
   systems. Agency remains the preferred wrapper when installed.
+- **Local Delegation** — orthogonal off/on control. When available and on, the
+  frontier desk may use the installed [`local-agent-delegation`](https://github.com/jennyf19/sealed-delegation)
+  skill for bounded, independently gated read/evidence work. Fail-closed: no
+  skill or no qualified route receipt means the toggle cannot take effect, and
+  no local-savings credit is awarded.
 
 ## Agent actions
 
@@ -63,7 +68,8 @@ The canvas also exposes actions Copilot can invoke directly:
 - `refresh` — force a rescan and return current signal data as JSON.
 - `stash` — stash a desk by `deskName`.
 - `restore` — restore a stashed desk by `deskName`.
-- `open_desk` — open a desk with optional `profile: "repo" | "connected"`.
+- `open_desk` — open a desk with optional `profile: "repo" | "connected"` and
+  optional `localDelegation: "off" | "on"`.
 
 ## Desk launch profiles
 
@@ -83,6 +89,36 @@ another desk's journal or artifact without receiving access outside the room.
 Set `WORKSHOP_DESK_PROFILE=connected` to retain the historical default for the
 main **open** button. The separate **connected** button is always available when
 repo mode is the default.
+
+## Local Delegation
+
+Local Delegation is **not** a third desk profile and does not replace the frontier
+model. It is a separate permission bit:
+
+```text
+repo / connected        = which MCPs and tools the frontier desk can see
+Local Delegation off/on = whether the frontier desk may invoke a bounded local worker
+```
+
+Availability is fail-closed. Cairn enables the lane only when:
+
+1. the `local-agent-delegation` skill is installed, and
+2. a qualified route is declared via `WORKSHOP_LOCAL_DELEGATION_ROUTE_ID` or a
+   receipt at `~/.copilot/local-agent-runs/qualified-route.json`
+   (`status: "qualified"`, safe `route_id`).
+
+Operator preference is stored at the workshop root in `.local-delegation.json`.
+When the preference is on but availability fails, opens still launch as frontier
+desks and surface the reason — they never silently fall back with savings credit.
+
+When effective, Cairn sets `WORKSHOP_LOCAL_DELEGATION=enabled` on the launched
+process, shows an open toast/badge (`Local Delegation effective · route …`), and
+may append one short ASCII line to `-i` (`Local Delegation env is enabled.`) when
+that combined prompt stays quote-free and under the length guard. Full policy
+still lives in the env flag plus the installed `local-agent-delegation` skill —
+never a long multi-sentence `-i` appendix (Windows Terminal reparse).
+The runtime, launcher, and gates remain owned by
+[Sealed Delegation](https://github.com/jennyf19/sealed-delegation).
 
 ## Signal shape
 

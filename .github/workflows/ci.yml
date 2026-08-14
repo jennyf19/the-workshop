@@ -24,7 +24,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: test canvas launch profiles
-        run: node --test .github/extensions/signals-dashboard/launch-profile.test.mjs
+        run: node --test .github/extensions/signals-dashboard/launch-profile.test.mjs .github/extensions/signals-dashboard/local-delegation.test.mjs
 
       - name: restore
         run: dotnet restore the-workshop.slnx

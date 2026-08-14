@@ -16,6 +16,8 @@ handsup-resolved.json
 closed-desks.json
 desk-agents.json
 alerts-dismissed.json
+.local-delegation.json
+.desk-stash.json
 
 # staged run copy (Start.bat)
 .run/
