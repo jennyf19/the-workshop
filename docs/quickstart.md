@@ -66,6 +66,12 @@ remains available for cross-desk reads, while ambient plugin MCPs stay out of th
 topic desk's prompt. Choose **connected** when the desk needs every configured
 external system. Agency remains the launcher when installed.
 
+The Cairn summary bar also exposes **Local Delegation** (off/on). It does not
+replace the frontier desk. When the `local-agent-delegation` skill is installed
+and a qualified route receipt is present, turning it on lets the frontier desk
+send bounded read/evidence subtasks to a local worker. Otherwise the control
+stays fail-closed and shows why.
+
 Set `WORKSHOP_DESK_PROFILE=connected` to retain the full surface on the main
 **open** button; the separate **connected** button is then omitted.
 
