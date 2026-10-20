@@ -5,14 +5,15 @@
 
 import { createServer } from "node:http";
 import { statSync, accessSync, realpathSync, constants as fsConstants } from "node:fs";
-import { readdir, readFile, writeFile, stat, rename, unlink } from "node:fs/promises";
-import { join, delimiter, isAbsolute, sep } from "node:path";
+import { readdir, readFile, writeFile, stat, rename, unlink, mkdir } from "node:fs/promises";
+import { join, delimiter, isAbsolute, sep, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { joinSession, createCanvas } from "@github/copilot-sdk/extension";
 import {
     buildDeskAgentArgv,
     isDeskProfile,
+    isSafeQuotedWindowsCmdArg,
     isSafeWindowsCmdShim,
     isWindowsAppExecutionAlias,
     normalizeDeskProfile,
@@ -20,10 +21,10 @@ import {
     quoteWindowsCmdArgument,
 } from "./launch-profile.mjs";
 import {
-    LOCAL_DELEGATION_STATE_FILE,
     buildLocalDelegationLaunchEnv,
     deskOrientPrompt,
     formatLocalDelegationOpenNotice,
+    localDelegationPreferencePath,
     normalizeLocalDelegationPreference,
     parseLocalDelegationState,
     resolveLocalDelegationAvailability,
@@ -365,9 +366,19 @@ function isInsideRoot(root, target) {
     } catch { return false; }
 }
 
+function preferenceStatePath(workshopDir) {
+    return localDelegationPreferencePath(workshopDir, {
+        resolvePath: (p) => {
+            try { return realpathSync(p); } catch { return p; }
+        },
+    });
+}
+
 async function readLocalDelegationPreference(workshopDir) {
+    // Never read preference from the workshop repo — a clone can ship
+    // preference:on. Only user-local state (or explicit env) counts.
     try {
-        const raw = JSON.parse(await readFile(join(workshopDir, LOCAL_DELEGATION_STATE_FILE), "utf8"));
+        const raw = JSON.parse(await readFile(preferenceStatePath(workshopDir), "utf8"));
         return parseLocalDelegationState(raw).preference;
     } catch {
         return normalizeLocalDelegationPreference(
@@ -377,20 +388,18 @@ async function readLocalDelegationPreference(workshopDir) {
 
 async function writeLocalDelegationPreference(workshopDir, preference) {
     const state = serializeLocalDelegationState({ preference });
-    const target = join(workshopDir, LOCAL_DELEGATION_STATE_FILE);
-    // Write via a same-directory temp file + rename so a checked-in symlink at
-    // .local-delegation.json cannot redirect the write outside the workshop.
+    const target = preferenceStatePath(workshopDir);
+    await mkdir(dirname(target), { recursive: true });
+    // Atomic replace in the user-local dir (temp + rename).
     const tmp = join(
-        workshopDir,
-        `.local-delegation.${process.pid}.${randomBytes(4).toString("hex")}.tmp`);
+        dirname(target),
+        `.pref.${process.pid}.${randomBytes(4).toString("hex")}.tmp`);
     const body = JSON.stringify(state, null, 2) + "\n";
     try {
         await writeFile(tmp, body, { encoding: "utf8", flag: "wx" });
         try {
             await rename(tmp, target);
         } catch {
-            // Windows may refuse rename-over-existing; replace without following
-            // a dangling external target by unlinking the name first.
             await unlink(target).catch(() => {});
             await rename(tmp, target);
         }
@@ -434,8 +443,9 @@ async function launchDeskConsole(
         // wt.exe does not reliably forward Node's spawn env into a new tab when
         // Windows Terminal is already running. Always start through cmd.exe and
         // set/clear WORKSHOP_LOCAL_DELEGATION in the command string itself.
-        const cmdSafe = run.every((arg) => !/[&|<>^%!()\r\n]/.test(arg))
-            && run.every((arg) => isSafeWindowsCmdShim(arg));
+        // Args are quoteWindowsCmdArgument'd, so only block expanders that still
+        // fire inside quotes (% and !) — allow parentheses in workshop paths.
+        const cmdSafe = run.every((arg) => isSafeQuotedWindowsCmdArg(arg));
         if (!cmdSafe || !cmd) return false;
         const inner = windowsLocalDelegationCmdPrefix(effective)
             + run.map(quoteWindowsCmdArgument).join(" ");
