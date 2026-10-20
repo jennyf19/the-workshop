@@ -13,6 +13,7 @@ import {
     normalizeDeskProfile,
     parsePluginMcpNames,
     quoteWindowsCmdArgument,
+    resolveDeskLaunchPreferences,
 } from "./launch-profile.mjs";
 
 test("normalizes supported profiles and defaults unknown values to repo", () => {
@@ -100,7 +101,7 @@ test("builds an Agency repo profile on top of the existing wrapper", () => {
         agencyCommand: "C:\\tools\\agency.exe",
         profile: "repo",
         pluginMcpNames: ["teams", "ado"],
-    }), [
+    }).slice(0, -2), [
         "C:\\tools\\agency.exe", "copilot", "--no-default-mcps",
         "--disable-mcp-server", "teams",
         "--disable-mcp-server", "ado",
@@ -116,7 +117,7 @@ test("builds a plain Copilot repo profile without Agency-only flags", () => {
         copilotCommand: "/usr/local/bin/copilot",
         profile: "repo",
         pluginMcpNames: ["calendar"],
-    }), [
+    }).slice(0, -2), [
         "/usr/local/bin/copilot", "--name", "cost-desk",
         "--disable-mcp-server", "calendar",
         "--add-dir", "/workshop",
@@ -130,7 +131,7 @@ test("connected preserves tools while Agency discovery failure still removes def
         useAgency: true,
         profile: "connected",
         pluginMcpNames: ["teams"],
-    }), [
+    }).slice(0, -2), [
         "agency", "copilot", "--add-dir", "/workshop",
     ]);
 
@@ -141,7 +142,73 @@ test("connected preserves tools while Agency discovery failure still removes def
         profile: "repo",
         pluginMcpNames: [],
         discoverySucceeded: false,
-    }), [
+    }).slice(0, -2), [
         "agency", "copilot", "--no-default-mcps", "--add-dir", "/workshop",
     ]);
+});
+
+test("launches use independent session UUIDs and explicit preferences across both routes and profiles", () => {
+    const ids = new Set();
+    for (const useAgency of [false, true]) {
+        for (const profile of ["repo", "connected"]) {
+            const argv = buildDeskAgentArgv({
+                deskName: "probe",
+                workshopDir: "C:\\workshop",
+                useAgency,
+                profile,
+                pluginMcpNames: ["teams"],
+                launchPreferences: {
+                    model: "example-model",
+                    reasoningEffort: "max",
+                    context: "long_context",
+                },
+            });
+            const sessionIndex = argv.indexOf("--session-id");
+            assert.notEqual(sessionIndex, -1);
+            const id = argv[sessionIndex + 1];
+            assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+            assert.equal(ids.has(id), false);
+            ids.add(id);
+            assert.equal(argv[argv.indexOf("--model") + 1], "example-model");
+            assert.equal(argv[argv.indexOf("--reasoning-effort") + 1], "max");
+            assert.equal(argv[argv.indexOf("--context") + 1], "long_context");
+            assert.equal(argv.includes("--no-default-mcps"), useAgency && profile === "repo");
+            assert.equal(argv.includes("--disable-mcp-server"), profile === "repo");
+            assert.equal(argv.includes("--resume"), false);
+            assert.equal(argv.includes("--continue"), false);
+        }
+    }
+});
+
+test("explicit launch preferences reject invalid values instead of silently using defaults", () => {
+    for (const [key, value] of [
+        ["model", 'model" & echo unexpected'],
+        ["reasoningEffort", "unlimited"],
+        ["context", "1M"],
+        ["model", null],
+        ["context", ""],
+        ["reasoningEffort", 5],
+    ]) {
+        assert.throws(() => buildDeskAgentArgv({
+            deskName: "probe",
+            workshopDir: "C:\\workshop",
+            useAgency: false,
+            launchPreferences: { [key]: value },
+        }), /Invalid desk launch/);
+    }
+});
+
+test("per-launch preferences override the panel selection without resetting other fields", () => {
+    assert.deepEqual(resolveDeskLaunchPreferences({
+        reasoningEffort: "low",
+    }, {
+        model: "example-model",
+        reasoningEffort: "high",
+        context: "long_context",
+    }), {
+        model: "example-model",
+        reasoningEffort: "low",
+        context: "long_context",
+    });
+    assert.deepEqual(resolveDeskLaunchPreferences(), {});
 });
