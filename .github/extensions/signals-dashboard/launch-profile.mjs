@@ -1,5 +1,10 @@
+import { randomUUID } from "node:crypto";
+
 const PROFILES = new Set(["repo", "connected"]);
 const SAFE_MCP_NAME = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const SAFE_MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
+const REASONING_EFFORTS = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max"]);
+const CONTEXT_TIERS = new Set(["default", "long_context"]);
 
 export function isDeskProfile(value) {
     return typeof value === "string" && PROFILES.has(value.toLowerCase());
@@ -23,6 +28,16 @@ export function quoteWindowsCmdArgument(value) {
 
 export function isSafeWindowsCmdShim(value) {
     return typeof value === "string" && !/[%\r\n]/.test(value);
+}
+
+/**
+ * Args that will be wrapped with quoteWindowsCmdArgument. Inside double quotes,
+ * cmd still expands %VAR% and !VAR! (delayed expansion). Other metacharacters
+ * like & | < > ^ ( ) are literal when quoted, so paths such as
+ * C:\Work\Project (1) must be allowed.
+ */
+export function isSafeQuotedWindowsCmdArg(value) {
+    return typeof value === "string" && !/[%!\r\n]/.test(value);
 }
 
 export function parsePluginMcpNames(text) {
@@ -59,6 +74,23 @@ export function parsePluginMcpNames(text) {
     return names;
 }
 
+export function resolveDeskLaunchPreferences(input = {}, defaults = {}) {
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+        throw new Error("Invalid desk launch preferences");
+    }
+    const preferences = {};
+    for (const key of ["model", "reasoningEffort", "context"]) {
+        const value = input[key] === undefined ? defaults[key] : input[key];
+        if (value === undefined) continue;
+        const valid = typeof value === "string" && (key === "model"
+            ? SAFE_MODEL.test(value)
+            : key === "reasoningEffort" ? REASONING_EFFORTS.has(value) : CONTEXT_TIERS.has(value));
+        if (!valid) throw new Error(`Invalid desk launch ${key}`);
+        preferences[key] = value;
+    }
+    return preferences;
+}
+
 export function buildDeskAgentArgv({
     deskName,
     workshopDir,
@@ -68,7 +100,9 @@ export function buildDeskAgentArgv({
     profile = "repo",
     pluginMcpNames = [],
     discoverySucceeded = true,
+    launchPreferences = {},
 }) {
+    const preferences = resolveDeskLaunchPreferences(launchPreferences);
     const argv = useAgency
         ? [agencyCommand, "copilot"]
         : [copilotCommand, "--name", deskName];
@@ -83,6 +117,9 @@ export function buildDeskAgentArgv({
         }
     }
 
-    argv.push("--add-dir", workshopDir);
+    if (preferences.model) argv.push("--model", preferences.model);
+    if (preferences.reasoningEffort) argv.push("--reasoning-effort", preferences.reasoningEffort);
+    if (preferences.context) argv.push("--context", preferences.context);
+    argv.push("--add-dir", workshopDir, "--session-id", randomUUID());
     return argv;
 }

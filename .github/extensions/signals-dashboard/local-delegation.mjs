@@ -1,13 +1,45 @@
+import { createHash } from "node:crypto";
 import { accessSync, constants as fsConstants, existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 const PREFERENCES = new Set(["off", "on"]);
 const SAFE_ROUTE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const PARENT_SESSION_ENV_VARS = [
+    "AGENCY_SESSION_ID",
+    "AGENCY_LOG_SESSION_DIR",
+    "AGENCY_SESSION_SUBPROCESS",
+    "COPILOT_AGENT_SESSION_ID",
+];
 
+/** @deprecated Repo-root state is rejected; kept only for docs/migration mentions. */
 export const LOCAL_DELEGATION_STATE_FILE = ".local-delegation.json";
 export const LOCAL_DELEGATION_ENV = "WORKSHOP_LOCAL_DELEGATION";
 export const LOCAL_DELEGATION_SKILL_NAME = "local-agent-delegation";
+export const LOCAL_DELEGATION_USER_STATE_DIR = join(".copilot", "workshop-local-delegation");
+
+/**
+ * Stable user-local preference path for a workshop root.
+ * Permission state must NOT live in the cloned workshop (a repo can ship
+ * preference:on). Key by a hash of the canonical workshop path under ~/.copilot.
+ */
+export function localDelegationPreferencePath(workshopDir, {
+    home = homedir(),
+    resolvePath = (p) => p,
+} = {}) {
+    if (typeof workshopDir !== "string" || !workshopDir) {
+        throw new Error("workshopDir is required");
+    }
+    let canonical = workshopDir;
+    try { canonical = resolvePath(workshopDir); } catch { /* keep input */ }
+    // Normalize separators only. Do not lowercase: on case-sensitive filesystems
+    // /work/Foo and /work/foo are distinct workshops and must not share state.
+    const key = createHash("sha256")
+        .update(String(canonical).replaceAll("\\", "/"))
+        .digest("hex")
+        .slice(0, 32);
+    return join(home, LOCAL_DELEGATION_USER_STATE_DIR, `${key}.json`);
+}
 
 export function isLocalDelegationPreference(value) {
     return typeof value === "string" && PREFERENCES.has(value.toLowerCase());
@@ -81,9 +113,10 @@ export function buildLocalDelegationLaunchEnv(baseEnv = {}, { localDelegationEff
     const env = { ...baseEnv };
     // Windows env names are case-insensitive; spreading process.env yields a
     // case-sensitive object, so clear every spelling before optionally setting.
-    const target = LOCAL_DELEGATION_ENV.toLowerCase();
+    const targets = new Set([LOCAL_DELEGATION_ENV, ...PARENT_SESSION_ENV_VARS]
+        .map((name) => name.toLowerCase()));
     for (const key of Object.keys(env)) {
-        if (key.toLowerCase() === target) delete env[key];
+        if (targets.has(key.toLowerCase())) delete env[key];
     }
     if (localDelegationEffective) {
         env[LOCAL_DELEGATION_ENV] = "enabled";
@@ -92,14 +125,20 @@ export function buildLocalDelegationLaunchEnv(baseEnv = {}, { localDelegationEff
 }
 
 /**
- * cmd.exe prefix that forces WORKSHOP_LOCAL_DELEGATION on or off inside a new
- * Windows Terminal / console session. wt.exe does not reliably forward the
- * caller's process env into a new tab when Terminal is already running.
+ * Clear inherited session state and set Local Delegation inside the new tab.
+ * A running terminal may supply its own environment instead of spawn's env.
  */
 export function windowsLocalDelegationCmdPrefix(localDelegationEffective = false) {
-    return localDelegationEffective
+    const localDelegation = localDelegationEffective
         ? 'set "WORKSHOP_LOCAL_DELEGATION=enabled"&& '
         : 'set "WORKSHOP_LOCAL_DELEGATION="&& ';
+    return localDelegation + PARENT_SESSION_ENV_VARS
+        .map((name) => `set "${name}="&& `).join("");
+}
+
+export function posixLocalDelegationEnvPrefix(localDelegationEffective = false) {
+    return `unset ${PARENT_SESSION_ENV_VARS.join(" ")} ${LOCAL_DELEGATION_ENV}; `
+        + (localDelegationEffective ? `export ${LOCAL_DELEGATION_ENV}=enabled; ` : "");
 }
 
 /**
