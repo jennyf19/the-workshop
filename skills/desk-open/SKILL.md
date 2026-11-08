@@ -22,6 +22,13 @@ desks/<desk-name>/
   journal.md       # persistent memory — read at start, written at end
 ```
 
+`desks/` is the default home. A desk can instead live in a group folder:
+any top-level folder whose name ends in `-desks` (for example
+`team-desks/<desk-name>/`). Use one only when the operator asks for that
+group, create the group folder if it doesn't exist, and read `desks/` in
+the steps below as that group folder. To find an existing desk, look in
+`desks/` first, then in each `*-desks/` folder.
+
 ## How to use
 
 1. **Choose a name.** Short, descriptive, kebab-case. The name is
