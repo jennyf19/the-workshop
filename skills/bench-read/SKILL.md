@@ -38,6 +38,7 @@ Common patterns:
 desks/<desk-name>/           # each desk's own workspace
   journal.md                  # the desk's memory
   <artifacts>                 # work products from this desk
+<group>-desks/<desk-name>/   # same, for desks kept in a group folder
 
 <shared files at root>        # cross-desk artifacts
 ```
@@ -45,7 +46,8 @@ desks/<desk-name>/           # each desk's own workspace
 ## How to read
 
 1. **List what's there.** Start with the directory structure to see
-   what desks exist and what they've produced.
+   what desks exist and what they've produced. Desks live in `desks/`
+   and in any top-level folder whose name ends in `-desks`.
 
 2. **Read journals first.** Each desk's journal tells you what it
    worked on and where it left things. The most recent entry is
